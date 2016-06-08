@@ -26,22 +26,26 @@ namespace Obfuscator
 
 			int start = Environment.TickCount;
 
-			try
+			//try
 			{
 				Console.Write("Loading project...");
 				//Obfuscator obfuscator = new Obfuscator(args[0]);
 
+
+				var resolver = new DefaultAssemblyResolver();
+				resolver.AddSearchDirectory(Path.GetDirectoryName(args[0]));
+				resolver.AddSearchDirectory(Path.GetDirectoryName(args[1]));
 				AssemblyDefinition myAssembly = AssemblyDefinition.ReadAssembly(args[0], new ReaderParameters
 				{
 					ReadingMode = Mono.Cecil.ReadingMode.Immediate,
 					ReadSymbols = false,
-					AssemblyResolver = new DefaultAssemblyResolver()
+					AssemblyResolver = resolver
 				});
 				AssemblyDefinition myAssembly1 = AssemblyDefinition.ReadAssembly(args[1], new ReaderParameters
 				{
 					ReadingMode = Mono.Cecil.ReadingMode.Immediate,
 					ReadSymbols = false,
-					AssemblyResolver = new DefaultAssemblyResolver()
+					AssemblyResolver = resolver
 				});
 
 				Obfuscator o = new Obfuscator();
@@ -60,7 +64,7 @@ namespace Obfuscator
 
 				Console.WriteLine("Completed, {0:f2} secs.", (Environment.TickCount - start) / 1000.0);
 			}
-			catch (Exception e)
+			/*catch (Exception e)
 			{
 				Console.WriteLine();
 				Console.Error.WriteLine("An error occurred during processing:");
@@ -68,7 +72,7 @@ namespace Obfuscator
 				if (e.InnerException != null)
 					Console.Error.WriteLine(e.InnerException.Message);
 				return 1;
-			}
+			}*/
 
 			return 0;
 		}
@@ -83,7 +87,7 @@ namespace Obfuscator
 		Dictionary<string, IList<Action<string>>> methods = new Dictionary<string, IList<Action<string>>>();
 		Dictionary<string, IList<Action<string>>> fields = new Dictionary<string, IList<Action<string>>>();
 		Dictionary<string, IList<Action<string>>> properties = new Dictionary<string, IList<Action<string>>>();
-		
+
 		public Obfuscator()
 		{
 		}
@@ -96,7 +100,8 @@ namespace Obfuscator
 
 		public void Resolve()
 		{
-			foreach (var assembly in assemblies) {
+			foreach (var assembly in assemblies)
+			{
 				foreach (var type in assembly.MainModule.GetTypes())
 				{
 					if (type.FullName != "<Module>")
@@ -109,7 +114,12 @@ namespace Obfuscator
 								RegisterMethod(method);
 							if (method.IsVirtual)
 							{
-								
+								var base1 = type.BaseType.Resolve();
+								//var base2 = GetBaseMethod(method);
+								//if (base2 != null )
+								{
+									//RegisterReferenceToBase(method,base2);
+								}
 							}
 							if (method.HasBody)
 							{ 
@@ -119,6 +129,7 @@ namespace Obfuscator
 									var typeReference = instruction.Operand as TypeReference;
 									var propertyReference = instruction.Operand as PropertyReference;
 									var methodReference = instruction.Operand as MethodReference;
+
 									if (fieldReference != null)
 									{
 										RegisterField(fieldReference);
@@ -152,7 +163,6 @@ namespace Obfuscator
 
 				foreach (var type in assembly.MainModule.GetTypeReferences())
 				{
-					
 					if (assemblies.Any(a=> a.Name.FullName == ((AssemblyNameReference) type.Scope).FullName))
 					{
 						RegisterNamespace(type);
@@ -206,7 +216,6 @@ namespace Obfuscator
 
 		private void RegisterMethod(MethodReference method)
 		{
-
 			Action<string> action = delegate (string s) { method.Name = s; };
 			IList<Action<string>> list;
 			if (methods.TryGetValue(method.FullName, out list))
@@ -287,6 +296,8 @@ namespace Obfuscator
 				types.Add(type.FullName, new List<Action<string>> { action });
 			}
 		}
+
+
 	}
 
 }
