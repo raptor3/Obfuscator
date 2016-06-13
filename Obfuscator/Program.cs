@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
 using Mono.Cecil;
+using Mono.Cecil.Rocks;
 
 namespace Obfuscator
 {
@@ -108,19 +109,31 @@ namespace Obfuscator
 					{
 						RegisterNamespace(type);
 						RegisterType(type);
+
 						foreach (var method in type.Methods)
 						{
-							if (!method.IsGetter && !method.IsConstructor && !method.IsSetter)
-								RegisterMethod(method);
-							if (method.IsVirtual)
+							foreach (var inter in type.Interfaces)
 							{
-								var base1 = type.BaseType.Resolve();
-								//var base2 = GetBaseMethod(method);
-								//if (base2 != null )
-								{
-									//RegisterReferenceToBase(method,base2);
-								}
+								var s = MetadataResolver.GetMethod(inter.Resolve().Methods, method);
+								Console.WriteLine(s);
 							}
+							
+							//MethodDefinitionRocks.GetMatching
+							if (!method.IsGetter && !method.IsConstructor && !method.IsSetter)
+
+								if (method.IsVirtual && !method.IsNewSlot)
+								{
+									var baseM = GetBaseMethod(method);
+									if (baseM != null )
+									{
+										RegisterWithBaseMethod(baseM, method);
+									}
+								}
+								else
+								{
+									RegisterMethod(method);
+								}
+							
 							if (method.HasBody)
 							{ 
 								foreach (var instruction in method.Body.Instructions)
@@ -144,7 +157,21 @@ namespace Obfuscator
 									}
 									if (methodReference != null)
 									{
-										RegisterMethod(methodReference);
+										var method1 = methodReference.Resolve();
+										if (!method1.IsGetter && !method1.IsConstructor && !method1.IsSetter)
+
+											if (method1.IsVirtual && !method1.IsNewSlot)
+											{
+												var baseM = GetBaseMethod(method1);
+												if (baseM != null)
+												{
+													RegisterWithBaseMethod(baseM, methodReference);
+												}
+											}
+											else
+											{
+												RegisterMethod(methodReference);
+											}
 									}
 								}
 							}
@@ -170,6 +197,11 @@ namespace Obfuscator
 					}
 				}
 			}
+		}
+
+		private MethodDefinition GetBaseMethod(MethodDefinition method)
+		{
+			return method.GetOriginalBaseMethod();
 		}
 
 		private void RegisterNamespace(TypeReference type)
@@ -225,6 +257,24 @@ namespace Obfuscator
 			else
 			{
 				methods.Add(method.FullName, new List<Action<string>> { action });
+			}
+		}
+
+		private void RegisterWithBaseMethod(MethodReference baseM, MethodReference method)
+		{
+			if (!assemblies.Contains(baseM.Module.Assembly))
+			{
+				return;
+			}
+			Action<string> action = delegate (string s) { method.Name = s; };
+			IList<Action<string>> list;
+			if (methods.TryGetValue(baseM.FullName, out list))
+			{
+				list.Add(action);
+			}
+			else
+			{
+				methods.Add(baseM.FullName, new List<Action<string>> { action });
 			}
 		}
 
