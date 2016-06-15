@@ -5,6 +5,8 @@ using System.Collections;
 using System.Linq;
 using Mono.Cecil;
 using Mono.Cecil.Rocks;
+using System.Xml.Schema;
+using System.Xml;
 
 namespace Obfuscator
 {
@@ -27,55 +29,75 @@ namespace Obfuscator
 
 			int start = Environment.TickCount;
 
-			//try
+			try
 			{
 				Console.Write("Loading project...");
+
+				XmlSchemaSet schemas = new XmlSchemaSet();
+				schemas.Add("","PropertiesSchema.xsd");
+
+				XmlReaderSettings settings = new XmlReaderSettings();
+				settings.ValidationType = ValidationType.Schema;
+				settings.Schemas = schemas;
+				settings.ValidationEventHandler += new ValidationEventHandler(ValidationCallBack);
+
+				// Create the XmlReader object.
+				XmlReader reader = XmlReader.Create("Options.xml", settings);
+				while (reader.Read())
+				{
+					Console.WriteLine(reader.Name);
+				};
+
+
 				//Obfuscator obfuscator = new Obfuscator(args[0]);
 
+				//var resolver = new DefaultAssemblyResolver();
+				//resolver.AddSearchDirectory(Path.GetDirectoryName(args[0]));
+				//resolver.AddSearchDirectory(Path.GetDirectoryName(args[1]));
+				//AssemblyDefinition myAssembly = AssemblyDefinition.ReadAssembly(args[0], new ReaderParameters
+				//{
+				//	ReadingMode = Mono.Cecil.ReadingMode.Immediate,
+				//	ReadSymbols = false,
+				//	AssemblyResolver = resolver
+				//});
+				//AssemblyDefinition myAssembly1 = AssemblyDefinition.ReadAssembly(args[1], new ReaderParameters
+				//{
+				//	ReadingMode = Mono.Cecil.ReadingMode.Immediate,
+				//	ReadSymbols = false,
+				//	AssemblyResolver = resolver
+				//});
 
-				var resolver = new DefaultAssemblyResolver();
-				resolver.AddSearchDirectory(Path.GetDirectoryName(args[0]));
-				resolver.AddSearchDirectory(Path.GetDirectoryName(args[1]));
-				AssemblyDefinition myAssembly = AssemblyDefinition.ReadAssembly(args[0], new ReaderParameters
-				{
-					ReadingMode = Mono.Cecil.ReadingMode.Immediate,
-					ReadSymbols = false,
-					AssemblyResolver = resolver
-				});
-				AssemblyDefinition myAssembly1 = AssemblyDefinition.ReadAssembly(args[1], new ReaderParameters
-				{
-					ReadingMode = Mono.Cecil.ReadingMode.Immediate,
-					ReadSymbols = false,
-					AssemblyResolver = resolver
-				});
+				//Obfuscator o = new Obfuscator();
+				//o.Load(myAssembly);
+				//o.Load(myAssembly1);
+				//o.Resolve();
+				//o.RunRules();
 
-				Obfuscator o = new Obfuscator();
-				o.Load(myAssembly);
-				o.Load(myAssembly1);
-				o.Resolve();
-				o.RunRules();
-				
-				string outName = Path.Combine("out", Path.GetFileName(args[0]));
-				myAssembly.Write(outName);
-				outName = Path.Combine("out", Path.GetFileName(args[1]));
-				myAssembly1.Write(outName);
-				Console.WriteLine("Done.");
-
-				//obfuscator.RunRules();
+				//string outName = Path.Combine("out", Path.GetFileName(args[0]));
+				//myAssembly.Write(outName);
+				//outName = Path.Combine("out", Path.GetFileName(args[1]));
+				//myAssembly1.Write(outName);
+				//Console.WriteLine("Done.");
 
 				Console.WriteLine("Completed, {0:f2} secs.", (Environment.TickCount - start) / 1000.0);
 			}
-			/*catch (Exception e)
+			catch (Exception e)
 			{
 				Console.WriteLine();
 				Console.Error.WriteLine("An error occurred during processing:");
 				Console.Error.WriteLine(e.Message);
 				if (e.InnerException != null)
 					Console.Error.WriteLine(e.InnerException.Message);
+				Console.ReadKey();
 				return 1;
-			}*/
-
+			}
+			Console.ReadKey();
 			return 0;
+		}
+
+		private static void ValidationCallBack(object sender, ValidationEventArgs e)
+		{
+			throw new Exception(string.Format("Validation Error: {0}", e.Message));
 		}
 	}
 

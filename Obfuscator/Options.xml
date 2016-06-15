@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Obfuscator>
+  <Module file="C:\Users\Vova\Documents\Visual Studio 2015\Projects\TestProject\TestProject\bin\Debug\TestProject.exe">
+  </Module>
+  <Module file="C:\Users\Vova\Documents\Visual Studio 2015\Projects\TestProject\TestProject2\bin\Debug\TestProject2.dll">
+    <sdas></sdas>
+  </Module>
+</Obfuscator>

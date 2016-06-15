@@ -59,6 +59,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Ierarchy\Assembly.cs" />
     <Compile Include="Ierarchy\Field.cs" />
     <Compile Include="Ierarchy\Method.cs" />
     <Compile Include="Ierarchy\Namespace.cs" />
@@ -71,9 +72,18 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
+    <None Include="PropertiesSchema.xsd">
+      <SubType>Designer</SubType>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="IerarchyKey\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Options.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

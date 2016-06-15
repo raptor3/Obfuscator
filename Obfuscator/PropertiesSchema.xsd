@@ -1,0 +1,80 @@
+﻿<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:simpleType name="accessibility">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="All" />
+      <xs:enumeration value="public" />
+      <xs:enumeration value="internal" />
+      <xs:enumeration value="private" />
+      <xs:enumeration value="protected" />
+      <xs:enumeration value="protected internal" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:element name="Obfuscator">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Module" maxOccurs="unbounded" minOccurs="0">
+          <xs:complexType>
+            <xs:choice maxOccurs="unbounded" minOccurs="0">
+              <xs:element name="SkipField">
+                <xs:complexType>
+                  <xs:simpleContent>
+                    <xs:extension base="xs:string">
+                      <xs:attribute type="xs:string" name="name" use="required"/>
+                      <xs:attribute type="xs:string" name="type" use="optional" default=".*"/>
+                      <xs:attribute type="accessibility" name="accessibilityLabel" use="optional" default="All"/>
+                    </xs:extension>
+                  </xs:simpleContent>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="SkipType">
+                <xs:complexType>
+                  <xs:simpleContent>
+                    <xs:extension base="xs:string">
+                      <xs:attribute type="xs:string" name="name" use="required"/>
+                      <xs:attribute type="xs:boolean" name="skipMethods" use="optional" default="false"/>
+                      <xs:attribute type="xs:boolean" name="skipFields" use="optional" default="false"/>
+                      <xs:attribute type="xs:boolean" name="skipProperties" use="optional" default="false"/>
+                    </xs:extension>
+                  </xs:simpleContent>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="SkipMethod">
+                <xs:complexType>
+                  <xs:simpleContent>
+                    <xs:extension base="xs:string">
+                      <xs:attribute type="xs:string" name="type" use="optional" default=".*"/>
+                      <xs:attribute type="xs:string" name="name" use="required"/>
+                      <xs:attribute type="accessibility" name="accessibilityLabel" use="optional" default="All"/>
+                    </xs:extension>
+                  </xs:simpleContent>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="SkipProperty">
+                <xs:complexType>
+                  <xs:simpleContent>
+                    <xs:extension base="xs:string">
+                      <xs:attribute type="xs:string" name="type" use="optional" default=".*"/>
+                      <xs:attribute type="xs:string" name="name" use="required"/>
+                      <xs:attribute type="accessibility" name="accessibilityLabel" use="optional" default="All"/>
+                    </xs:extension>
+                  </xs:simpleContent>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="SkipNamespace">
+                <xs:complexType>
+                  <xs:simpleContent>
+                    <xs:extension base="xs:string">
+                      <xs:attribute type="xs:string" name="name" />
+                      <xs:attribute type="xs:boolean" name="skipTypes" use="optional" default="false"/>
+                    </xs:extension>
+                  </xs:simpleContent>
+                </xs:complexType>
+              </xs:element>
+            </xs:choice>
+            <xs:attribute type="xs:string" name="file" />
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
