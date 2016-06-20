@@ -1,14 +1,4 @@
 ﻿<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
-  <xs:simpleType name="accessibility">
-    <xs:restriction base="xs:string">
-      <xs:enumeration value="All" />
-      <xs:enumeration value="public" />
-      <xs:enumeration value="internal" />
-      <xs:enumeration value="private" />
-      <xs:enumeration value="protected" />
-      <xs:enumeration value="protected internal" />
-    </xs:restriction>
-  </xs:simpleType>
   <xs:element name="Obfuscator">
     <xs:complexType>
       <xs:sequence>
@@ -21,7 +11,6 @@
                     <xs:extension base="xs:string">
                       <xs:attribute type="xs:string" name="name" use="required"/>
                       <xs:attribute type="xs:string" name="type" use="optional" default=".*"/>
-                      <xs:attribute type="accessibility" name="accessibilityLabel" use="optional" default="All"/>
                     </xs:extension>
                   </xs:simpleContent>
                 </xs:complexType>
@@ -44,7 +33,6 @@
                     <xs:extension base="xs:string">
                       <xs:attribute type="xs:string" name="type" use="optional" default=".*"/>
                       <xs:attribute type="xs:string" name="name" use="required"/>
-                      <xs:attribute type="accessibility" name="accessibilityLabel" use="optional" default="All"/>
                     </xs:extension>
                   </xs:simpleContent>
                 </xs:complexType>
@@ -55,7 +43,6 @@
                     <xs:extension base="xs:string">
                       <xs:attribute type="xs:string" name="type" use="optional" default=".*"/>
                       <xs:attribute type="xs:string" name="name" use="required"/>
-                      <xs:attribute type="accessibility" name="accessibilityLabel" use="optional" default="All"/>
                     </xs:extension>
                   </xs:simpleContent>
                 </xs:complexType>

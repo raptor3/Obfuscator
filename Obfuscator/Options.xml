@@ -1,8 +1,18 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Obfuscator>
   <Module file="C:\Users\Vova\Documents\Visual Studio 2015\Projects\TestProject\TestProject\bin\Debug\TestProject.exe">
+    <SkipField type="Full.Namespace.TypeName" name="Pub.*" />
   </Module>
   <Module file="C:\Users\Vova\Documents\Visual Studio 2015\Projects\TestProject\TestProject2\bin\Debug\TestProject2.dll">
-    <sdas></sdas>
+    <SkipField type="Full.Namespace.TypeName" name="Pub.*"  />
+    <SkipNamespace name="Company.PublicBits" skipTypes="true"/>
+    <SkipField type="Full.Namespace.TypeName" name="Pub.*"  />
+    <SkipType name="Full.Namespace.TypeName2" skipMethods="true" skipProperties="true" />
+    <SkipType name="Full.Namespace.TypeName2" skipMethods="true" skipFields="true" skipProperties="true" />
+    <SkipNamespace name="Company.PublicBits" skipTypes="true"/>
+    <SkipMethod type="Full.Namespace.TypeName3" name=".*" />
+    <SkipMethod type="Full.Namespace.TypeName3" name=".*" />
+    <SkipProperty type="Full.Namespace.TypeName4" name=".*" />
+    <SkipProperty type="Full.Namespace.TypeName4" name=".*" />
   </Module>
 </Obfuscator>

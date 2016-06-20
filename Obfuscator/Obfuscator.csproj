@@ -59,15 +59,27 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Ierarchy\Assembly.cs" />
-    <Compile Include="Ierarchy\Field.cs" />
-    <Compile Include="Ierarchy\Method.cs" />
-    <Compile Include="Ierarchy\Namespace.cs" />
+    <Compile Include="Iterator\INameIterator.cs" />
+    <Compile Include="Iterator\NameIterator.cs" />
+    <Compile Include="SkipRules\ISkipType.cs" />
+    <Compile Include="SkipRules\ISkipMethod.cs" />
+    <Compile Include="SkipRules\ISkipField.cs" />
+    <Compile Include="SkipRules\ISkipNamespace.cs" />
+    <Compile Include="SkipRules\ISkipProperty.cs" />
+    <Compile Include="Structure\Field.cs" />
+    <Compile Include="Structure\Method.cs" />
+    <Compile Include="Structure\Namespace.cs" />
     <Compile Include="Program.cs" />
-    <Compile Include="Ierarchy\Project.cs" />
+    <Compile Include="Structure\Assembly.cs" />
+    <Compile Include="Structure\Project.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Ierarchy\Property.cs" />
-    <Compile Include="Ierarchy\Type.cs" />
+    <Compile Include="Structure\Property.cs" />
+    <Compile Include="Structure\Type.cs" />
+    <Compile Include="SkipRules\SkipField.cs" />
+    <Compile Include="SkipRules\SkipMethod.cs" />
+    <Compile Include="SkipRules\SkipNamespace.cs" />
+    <Compile Include="SkipRules\SkipProperty.cs" />
+    <Compile Include="SkipRules\SkipType.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -77,9 +89,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="IerarchyKey\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <Content Include="Options.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
