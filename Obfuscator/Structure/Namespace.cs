@@ -101,16 +101,16 @@ namespace Obfuscator.Structure
 			return tpe.GetMethod(methodRef);
 		}
 
-		public void ChangeName(string name, params ISkipNamespace[] skipNamespaces)
+		public void ChangeName(string newName, params ISkipNamespace[] skipNamespaces)
 		{
-			if (skipNamespaces.Any(r => r.IsNamespaceSkip(name)))
+			if (skipNamespaces.Any(r => r.IsNamespaceSkip(this.name)))
 			{
 				return;
 			}
 
 			foreach (var type in types.Values)
 			{
-				type.ChangeNamespace(name);
+				type.ChangeNamespace(newName);
 			}
 		}
 

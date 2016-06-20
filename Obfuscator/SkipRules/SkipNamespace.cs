@@ -16,7 +16,7 @@ namespace Obfuscator.SkipRules
 		[XmlAttribute("name")]
 		public string Name { get; set; }
 
-		[XmlAttribute("SkipTypes")]
+		[XmlAttribute("skipTypes")]
 		public bool SkipTypes { get; set; }
 
 		public bool IsNamespaceSkip(string namespaceName)
