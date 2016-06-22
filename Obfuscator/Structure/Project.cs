@@ -92,12 +92,17 @@ namespace Obfuscator.Structure
 		}
 
 
-		public void RunRules(INameIterator nameIterator)
+		public string RunRules(INameIterator nameIterator)
 		{
+			var result = new StringBuilder();
+
 			foreach (var assembly in Assemblies)
 			{
-				assembly.RunRules(nameIterator);
+				result.AppendLine(assembly.Name);
+				result.AppendLine(assembly.RunRules(nameIterator));
 			}
+
+			return result.ToString();
 		}
 
 		public void SaveAssemblies(string output)

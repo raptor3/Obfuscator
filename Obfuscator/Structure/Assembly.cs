@@ -14,7 +14,9 @@ namespace Obfuscator.Structure
 	{
 		private Project project;
 		private AssemblyDefinition assembly;
-		Dictionary<string, Namespace> namespaces = new Dictionary<string, Namespace>();
+		private Dictionary<string, Namespace> namespaces = new Dictionary<string, Namespace>();
+
+		public string Name { get { return assembly.FullName; } }
 
 		[XmlAttribute("file")]
 		public string File { get; set; }
@@ -96,20 +98,34 @@ namespace Obfuscator.Structure
 			return assembly.FullName == methRef.Resolve().Module.Assembly.FullName;
 		}
 
-		public void RunRules(INameIterator nameIterator)
+		public string RunRules(INameIterator nameIterator)
 		{
-			foreach (var nmspace in namespaces.Values)
-			{
-				nmspace.RunRules(nameIterator, SkipNamespaces, SkipTypes, SkipMethods, SkipFields, SkipProperties);
-			}
-
 			nameIterator.Reset();
 
+			var skippedNamespace = new StringBuilder("SkippedNamespaces");
+			var renamedNamespace = new StringBuilder("RenamedNamespaces");
+			skippedNamespace.AppendLine();
+			renamedNamespace.AppendLine();
+
 			foreach (var nmspace in namespaces.Values)
 			{
-				nmspace.ChangeName(nameIterator.Next(), SkipNamespaces.ToArray());
+				string nmsR = nmspace.RunRules(nameIterator, SkipNamespaces, SkipTypes, SkipMethods, SkipFields, SkipProperties);
+
+				if (nmspace.ChangeName(nameIterator.Next(), SkipNamespaces.ToArray()))
+				{
+					renamedNamespace.AppendLine(nmspace.Changes);
+					renamedNamespace.AppendLine(nmsR);
+				} else
+				{
+					skippedNamespace.AppendLine(nmspace.Changes);
+					skippedNamespace.AppendLine(nmsR);
+				}
 			}
-			
+
+			var result = new StringBuilder();
+			result.AppendLine(skippedNamespace.ToString());
+			result.AppendLine(renamedNamespace.ToString());
+			return result.ToString();
 		}
 
 		public void RegistrateReference(TypeReference typeRef)

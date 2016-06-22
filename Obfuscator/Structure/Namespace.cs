@@ -4,6 +4,7 @@ using System;
 using Obfuscator.Iterator;
 using Obfuscator.SkipRules;
 using System.Linq;
+using System.Text;
 
 namespace Obfuscator.Structure
 {
@@ -11,9 +12,11 @@ namespace Obfuscator.Structure
 	{
 		private Project project;
 		private bool renamed;
-		private string changeTo;
+		private string changes;
 		private string name;
 		private Dictionary<string, Type> types = new Dictionary<string, Type>();
+
+		public string Changes {get { return changes; } }
 
 		public Namespace(Project project, string name)
 		{
@@ -23,6 +26,8 @@ namespace Obfuscator.Structure
 
 		public void RegisterReference(TypeReference type)
 		{
+			changes = type.Namespace;
+
 			Type tpe;
 
 			if (!types.TryGetValue(type.FullName, out tpe))
@@ -101,35 +106,55 @@ namespace Obfuscator.Structure
 			return tpe.GetMethod(methodRef);
 		}
 
-		public void ChangeName(string newName, params ISkipNamespace[] skipNamespaces)
+		public bool ChangeName(string newName, params ISkipNamespace[] skipNamespaces)
 		{
 			if (skipNamespaces.Any(r => r.IsNamespaceSkip(this.name)))
 			{
-				return;
+				return false;
 			}
 
 			foreach (var type in types.Values)
 			{
 				type.ChangeNamespace(newName);
 			}
+
+			changes = " -> " + name;
+
+			return true;
 		}
 
-		public void RunRules(INameIterator nameIterator, List<SkipNamespace> skipNamespaces, List<SkipType> skipTypes, List<SkipMethod> skipMethods, List<SkipField> skipFields, List<SkipProperty> skipProperties)
+		public string RunRules(INameIterator nameIterator, List<SkipNamespace> skipNamespaces, List<SkipType> skipTypes, List<SkipMethod> skipMethods, List<SkipField> skipFields, List<SkipProperty> skipProperties)
 		{
-			foreach (var type in types.Values)
-			{
-				type.RunRules(nameIterator, skipNamespaces, skipTypes, skipMethods, skipFields, skipProperties);
-			}
-
 			nameIterator.Reset();
 
 			var iSkipTypes = new List<ISkipType>(skipTypes);
 			iSkipTypes.AddRange(skipNamespaces);
 
+			var skippedTypes = new StringBuilder("SkippedTypes");
+			var renamedTypes = new StringBuilder("RenamedTypes");
+			skippedTypes.AppendLine();
+			renamedTypes.AppendLine();
+
 			foreach (var type in types.Values)
 			{
-				type.ChangeName(nameIterator.Next(), iSkipTypes.ToArray());
+				string typeR = type.RunRules(nameIterator, skipNamespaces, skipTypes, skipMethods, skipFields, skipProperties);
+
+				if (type.ChangeName(nameIterator.Next(), iSkipTypes.ToArray()))
+				{
+					renamedTypes.AppendLine(type.Changes);
+					renamedTypes.AppendLine(typeR);
+				} else
+				{
+					skippedTypes.AppendLine(type.Changes);
+					skippedTypes.AppendLine(typeR);
+				}
 			}
+
+			var result = new StringBuilder();
+			result.AppendLine(skippedTypes.ToString());
+			result.AppendLine(renamedTypes.ToString());
+
+			return result.ToString();
 		}
 	}
 

@@ -9,7 +9,13 @@ namespace Obfuscator.Structure
 	{
 		private Project project;
 		private PropertyDefinition definition;
-		List<PropertyReference> references = new List<PropertyReference>();
+		private string changes;
+		private List<PropertyReference> references = new List<PropertyReference>();
+
+		public string Changes
+		{
+			get { return changes; }
+		}
 
 		public Property(Project project)
 		{
@@ -21,17 +27,22 @@ namespace Obfuscator.Structure
 			references.Add(propRef);
 		}
 
-		public void ChangeName(string name, params ISkipProperty[] skipProperties)
+		public bool ChangeName(string name, params ISkipProperty[] skipProperties)
 		{
+			changes = definition.Name;
 			if (skipProperties.Any( r=> r.IsPropertySkip(definition)))
 			{
-				return;
+				return false;
 			}
 
 			foreach (var prop in references)
 			{
 				prop.Name = name;
 			}
+
+			changes += " -> " + name;
+
+			return true;
 		}
 
 		public void Resolve(PropertyDefinition prop)

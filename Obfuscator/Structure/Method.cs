@@ -9,9 +9,15 @@ namespace Obfuscator.Structure
 	{
 		private MethodDefinition definition;
 		private Project project;
-		List<MethodReference> references = new List<MethodReference>();
+		private string changes;
+		private List<MethodReference> references = new List<MethodReference>();
 
 		private bool notObfuscated;
+
+		public string Changes
+		{
+			get { return changes; }
+		}
 
 		public Method(Project project)
 		{
@@ -59,12 +65,16 @@ namespace Obfuscator.Structure
 			}
 		}
 
-		public void ChangeName(string name, params ISkipMethod[] skipMethods)
+		public bool ChangeName(string name, params ISkipMethod[] skipMethods)
 		{
+			changes = definition.Name;
+
 			if (skipMethods.Any(r => r.IsMethodSkip(definition)))
 			{
-				return;
+				return false;
 			}
+
+			return false;
 			//TODO
 		}
 	}

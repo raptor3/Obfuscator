@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Obfuscator.SkipRules;
 using System.Linq;
+using System;
 
 namespace Obfuscator.Structure
 {
@@ -9,6 +10,12 @@ namespace Obfuscator.Structure
 	{
 		private Project project;
 		private FieldDefinition definition;
+		private string changes;
+
+		public string Changes
+		{
+			get { return changes; }
+		}
 
 		List<FieldReference> references = new List<FieldReference>();
 
@@ -28,17 +35,21 @@ namespace Obfuscator.Structure
 			references.Add(fieldDef);
 		}
 
-		public void ChangeName(string name, params ISkipField[] skipFields)
+		public bool ChangeName(string name, params ISkipField[] skipFields)
 		{
+			changes = definition.Name;
+
 			if (skipFields.Any(r => r.IsFieldSkip(definition)))
 			{
-				return;
+				return false;
 			}
 
 			foreach (var fieldRef in references)
 			{
 				fieldRef.Name = name;
 			}
+			changes += " -> " + name;
+			return true;
 		}
 	}
 }

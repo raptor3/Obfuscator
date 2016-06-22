@@ -48,7 +48,8 @@ namespace Obfuscator
 
 				project.Load(new DefaultAssemblyResolver());
 				project.Resolve();
-				project.RunRules(new NameIterator());
+				Console.WriteLine();
+				Console.WriteLine(project.RunRules(new NameIterator()));
 
 				Directory.CreateDirectory(args[1]);
 				project.SaveAssemblies(args[1]);

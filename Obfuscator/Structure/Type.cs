@@ -4,20 +4,26 @@ using System;
 using Obfuscator.Iterator;
 using Obfuscator.SkipRules;
 using System.Linq;
+using System.Text;
 
 namespace Obfuscator.Structure
 {
 	public class Type
 	{
-		List<TypeReference> references = new List<TypeReference>();
+		private Project project;
 
-		Dictionary<string, Method> methods = new Dictionary<string, Method>();
-		Dictionary<string, Property> properties = new Dictionary<string, Property>();
-		Dictionary<string, Field> fields = new Dictionary<string, Field>();
+		private TypeDefinition definition;
+		private string changes;
+		private List<TypeReference> references = new List<TypeReference>();
 
-		Project project;
+		public string Changes
+		{
+			get { return changes; }
+		}
 
-		TypeDefinition definition;
+		private Dictionary<string, Method> methods = new Dictionary<string, Method>();
+		private Dictionary<string, Property> properties = new Dictionary<string, Property>();
+		private Dictionary<string, Field> fields = new Dictionary<string, Field>();
 
 		public Type(Project prj)
 		{
@@ -128,10 +134,8 @@ namespace Obfuscator.Structure
 			}
 		}
 
-		public void RunRules(INameIterator nameIterator, List<SkipNamespace> skipNamespaces, List<SkipType> skipTypes, List<SkipMethod> skipMethods, List<SkipField> skipFields, List<SkipProperty> skipProperties)
+		public string RunRules(INameIterator nameIterator, List<SkipNamespace> skipNamespaces, List<SkipType> skipTypes, List<SkipMethod> skipMethods, List<SkipField> skipFields, List<SkipProperty> skipProperties)
 		{
-			nameIterator.Reset();
-
 			var iSkipMethods = new List<ISkipMethod>(skipMethods);
 			iSkipMethods.AddRange(skipNamespaces);
 			iSkipMethods.AddRange(skipTypes);
@@ -144,37 +148,90 @@ namespace Obfuscator.Structure
 			iSkipFields.AddRange(skipNamespaces);
 			iSkipFields.AddRange(skipTypes);
 
+			var skippedFields = new StringBuilder("SkippedFields");
+			var renamedFields = new StringBuilder("RenamedFields");
+			skippedFields.AppendLine();
+			renamedFields.AppendLine();
+
+			var skippedProperties = new StringBuilder("SkippedProperties");
+			var renamedProperties = new StringBuilder("RenamedProperties");
+			skippedProperties.AppendLine();
+			renamedProperties.AppendLine();
+
+			var skippedMethods = new StringBuilder("SkippedMethods");
+			var renamedMethods = new StringBuilder("RenamedMethods");
+			skippedMethods.AppendLine();
+			renamedMethods.AppendLine();
+
+			nameIterator.Reset();
+
 			foreach (var field in fields.Values)
 			{
-				field.ChangeName(nameIterator.Next(), iSkipFields.ToArray());
+				if (field.ChangeName(nameIterator.Next(), iSkipFields.ToArray()))
+				{
+					renamedFields.AppendLine(field.Changes);
+				}
+				else
+				{
+					skippedFields.AppendLine(field.Changes);
+				}
 			}
 
 			nameIterator.Reset();
 
 			foreach (var prop in properties.Values)
 			{
-				prop.ChangeName(nameIterator.Next(), iSkipProperties.ToArray());
+				if (prop.ChangeName(nameIterator.Next(), iSkipProperties.ToArray()))
+				{
+					renamedProperties.AppendLine(prop.Changes);
+				}
+				else
+				{
+					skippedProperties.AppendLine(prop.Changes);
+				}
 			}
 
 			nameIterator.Reset();
 
 			foreach (var method in methods.Values)
 			{
-				method.ChangeName(nameIterator.Next(), iSkipMethods.ToArray());
+				if (method.ChangeName(nameIterator.Next(), iSkipMethods.ToArray()))
+				{
+					renamedMethods.AppendLine(method.Changes);
+				}
+				else
+				{
+					skippedMethods.AppendLine(method.Changes);
+				}
 			}
+
+			var result = new StringBuilder();
+			result.AppendLine(skippedFields.ToString());
+			result.AppendLine(renamedFields.ToString());
+			result.AppendLine(skippedProperties.ToString());
+			result.AppendLine(renamedProperties.ToString());
+			result.AppendLine(skippedMethods.ToString());
+			result.AppendLine(renamedMethods.ToString());
+			return result.ToString();
 		}
 
-		public void ChangeName(string name, params ISkipType[] skipTypes)
+		public bool ChangeName(string name, params ISkipType[] skipTypes)
 		{
+			changes = definition.Name;
+
 			if (skipTypes.Any(r=> r.IsTypeSkip(definition)))
 			{
-				return;
+				return false;
 			}
 
 			foreach (var type in references)
 			{
 				type.Name = name;
 			}
+
+			changes += " -> " + name;
+
+			return true;
 		}
 	}
 }
