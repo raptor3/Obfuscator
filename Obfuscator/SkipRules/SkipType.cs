@@ -30,17 +30,17 @@ namespace Obfuscator.SkipRules
 
 		public bool IsMethodSkip(MethodReference method)
 		{
-			return Regex.IsMatch(method.DeclaringType.Name, Name) && SkipMethods;
+			return SkipMethods && Regex.IsMatch(method.DeclaringType.Name, Name);
 		}
 
 		public bool IsPropertySkip(PropertyReference prop)
 		{
-			return Regex.IsMatch(prop.DeclaringType.Name, Name) && SkipProperties;
+			return SkipProperties && Regex.IsMatch(prop.DeclaringType.Name, Name);
 		}
 
 		public bool IsFieldSkip(FieldReference field)
 		{
-			return Regex.IsMatch(field.DeclaringType.Name, Name) && SkipFields;
+			return SkipFields && Regex.IsMatch(field.DeclaringType.Name, Name);
 		}
 	}
 }

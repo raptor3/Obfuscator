@@ -9,19 +9,17 @@ namespace Obfuscator.Structure
 	public class Field
 	{
 		private Project project;
+		private Assembly assembly;
 		private FieldDefinition definition;
 		private string changes;
+		private List<FieldReference> references = new List<FieldReference>();
 
-		public string Changes
-		{
-			get { return changes; }
-		}
+		public string Changes { get { return changes; } }
 
-		List<FieldReference> references = new List<FieldReference>();
-
-		public Field(Project project)
+		public Field(Project project, Assembly assembly)
 		{
 			this.project = project;
+			this.assembly = assembly;
 		}
 
 		public void RegisterReference(FieldReference fieldRef)

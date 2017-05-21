@@ -26,22 +26,22 @@ namespace Obfuscator.SkipRules
 
 		public bool IsTypeSkip(TypeReference type)
 		{
-			return Regex.IsMatch(type.Namespace, Name) && SkipTypes;
+			return SkipTypes && Regex.IsMatch(type.Namespace, Name);
 		}
 
 		public bool IsMethodSkip(MethodReference method)
 		{
-			return Regex.IsMatch(method.DeclaringType.Namespace, Name) && SkipTypes;
+			return SkipTypes && Regex.IsMatch(method.DeclaringType.Namespace, Name);
 		}
 
 		public bool IsPropertySkip(PropertyReference prop)
 		{
-			return Regex.IsMatch(prop.DeclaringType.Namespace, Name) && SkipTypes;
+			return SkipTypes && Regex.IsMatch(prop.DeclaringType.Namespace, Name);
 		}
 
 		public bool IsFieldSkip(FieldReference field)
 		{
-			return Regex.IsMatch(field.DeclaringType.Namespace, Name) && SkipTypes;
+			return SkipTypes && Regex.IsMatch(field.DeclaringType.Namespace, Name);
 		}
 	}
 }

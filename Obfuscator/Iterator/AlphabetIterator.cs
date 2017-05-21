@@ -1,6 +1,6 @@
 ﻿namespace Obfuscator.Iterator
 {
-	public class NameIterator : INameIterator
+	public class AlphabetIterator : INameIterator
 	{
 		private static char defaultValue = 'a';
 

@@ -8,6 +8,7 @@ namespace Obfuscator.Structure
 	public class Property
 	{
 		private Project project;
+		private Assembly assembly;
 		private PropertyDefinition definition;
 		private string changes;
 		private List<PropertyReference> references = new List<PropertyReference>();
@@ -17,9 +18,10 @@ namespace Obfuscator.Structure
 			get { return changes; }
 		}
 
-		public Property(Project project)
+		public Property(Project project, Assembly assembly)
 		{
 			this.project = project;
+			this.assembly = assembly;
 		}
 
 		public void RegisterReference(PropertyReference propRef)

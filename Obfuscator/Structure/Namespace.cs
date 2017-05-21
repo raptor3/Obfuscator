@@ -11,6 +11,7 @@ namespace Obfuscator.Structure
 	public class Namespace
 	{
 		private Project project;
+		private Assembly assembly;
 		private bool renamed;
 		private string changes;
 		private string name;
@@ -18,80 +19,48 @@ namespace Obfuscator.Structure
 
 		public string Changes {get { return changes; } }
 
-		public Namespace(Project project, string name)
+		public Namespace(Project project, Assembly assembly, string name)
 		{
 			this.project = project;
+			this.assembly = assembly;
 			this.name = name;
+		}
+
+		private Type GetOrAddType(TypeReference type)
+		{
+			Type tpe;
+			if (!types.TryGetValue(type.FullName, out tpe))
+			{
+				tpe = new Type(project, assembly);
+
+				types.Add(type.FullName, tpe);
+			}
+			return tpe;
 		}
 
 		public void RegisterReference(TypeReference type)
 		{
-			changes = type.Namespace;
-
-			Type tpe;
-
-			if (!types.TryGetValue(type.FullName, out tpe))
-			{
-				tpe = new Type(project);
-
-				types.Add(type.FullName, tpe);
-			}
-			tpe.RegisterReference(type);
+			GetOrAddType(type).RegisterReference(type);
 		}
 
 		public void RegisterReference(FieldReference field)
 		{
-			Type tpe;
-
-			if (!types.TryGetValue(field.DeclaringType.FullName, out tpe))
-			{
-				tpe = new Type(project);
-
-				types.Add(field.DeclaringType.FullName, tpe);
-			}
-			tpe.RegisterReference(field);
+			GetOrAddType(field.DeclaringType).RegisterReference(field);
 		}
 
 		public void RegisterReference(PropertyReference propRef)
 		{
-			Type tpe;
-
-			if (!types.TryGetValue(propRef.DeclaringType.FullName, out tpe))
-			{
-				tpe = new Type(project);
-
-				types.Add(propRef.DeclaringType.FullName, tpe);
-			}
-			tpe.RegisterReference(propRef);
+			GetOrAddType(propRef.DeclaringType).RegisterReference(propRef);
 		}
 
 		public void RegisterReference(MethodReference methodRef)
 		{
-			Type tpe;
-
-			if (!types.TryGetValue(methodRef.DeclaringType.FullName, out tpe))
-			{
-				tpe = new Type(project);
-
-				types.Add(methodRef.DeclaringType.FullName, tpe);
-			}
-
-			tpe.RegisterReference(methodRef);
+			GetOrAddType(methodRef.DeclaringType).RegisterReference(methodRef);
 		}
 
 		public void Resolve(TypeDefinition type)
 		{
-			Type tpe;
-
-			if (!types.TryGetValue(type.FullName, out tpe))
-			{
-				tpe = new Type(project);
-
-				types.Add(type.FullName, tpe);
-			}
-
-			tpe.Resolve(type);
-
+			GetOrAddType(type).Resolve(type);		
 		}
 
 		public Method GetMethod(MethodReference methodRef)
@@ -106,9 +75,11 @@ namespace Obfuscator.Structure
 			return tpe.GetMethod(methodRef);
 		}
 
-		public bool ChangeName(string newName, params ISkipNamespace[] skipNamespaces)
+		public bool ChangeName(string newName)
 		{
-			if (skipNamespaces.Any(r => r.IsNamespaceSkip(this.name)))
+			changes = name;
+
+			if (assembly.SkipNamespaces.Any(r => r.IsNamespaceSkip(this.name)))
 			{
 				return false;
 			}
@@ -118,28 +89,25 @@ namespace Obfuscator.Structure
 				type.ChangeNamespace(newName);
 			}
 
-			changes = " -> " + name;
+			changes += " -> " + newName;
 
 			return true;
 		}
 
-		public string RunRules(INameIterator nameIterator, List<SkipNamespace> skipNamespaces, List<SkipType> skipTypes, List<SkipMethod> skipMethods, List<SkipField> skipFields, List<SkipProperty> skipProperties)
+		public string RunRules()
 		{
-			nameIterator.Reset();
+			var nameIterator = project.NameIteratorFabric.GetIterator();
 
-			var iSkipTypes = new List<ISkipType>(skipTypes);
-			iSkipTypes.AddRange(skipNamespaces);
-
-			var skippedTypes = new StringBuilder("SkippedTypes");
-			var renamedTypes = new StringBuilder("RenamedTypes");
+			var skippedTypes = new StringBuilder("SkippedTypes : {");
+			var renamedTypes = new StringBuilder("RenamedTypes : {");
 			skippedTypes.AppendLine();
 			renamedTypes.AppendLine();
 
 			foreach (var type in types.Values)
 			{
-				string typeR = type.RunRules(nameIterator, skipNamespaces, skipTypes, skipMethods, skipFields, skipProperties);
+				string typeR = type.RunRules();
 
-				if (type.ChangeName(nameIterator.Next(), iSkipTypes.ToArray()))
+				if (type.ChangeName(nameIterator.Next()))
 				{
 					renamedTypes.AppendLine(type.Changes);
 					renamedTypes.AppendLine(typeR);
@@ -150,11 +118,22 @@ namespace Obfuscator.Structure
 				}
 			}
 
+			skippedTypes.AppendLine("}");
+			renamedTypes.AppendLine("}");
+
 			var result = new StringBuilder();
 			result.AppendLine(skippedTypes.ToString());
 			result.AppendLine(renamedTypes.ToString());
 
 			return result.ToString();
+		}
+
+		public void FindOverrides()
+		{
+			foreach (var type in types.Values)
+			{
+				type.FindOverrides();
+			}
 		}
 	}
 

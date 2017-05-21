@@ -45,11 +45,11 @@ namespace Obfuscator
 				XmlSerializer serializer = new XmlSerializer(typeof(Project));
 
 				var project = (Project)serializer.Deserialize(reader);
-
+				project.NameIteratorFabric = new AlphabetIteratorFabric();
 				project.Load(new DefaultAssemblyResolver());
 				project.Resolve();
 				Console.WriteLine();
-				Console.WriteLine(project.RunRules(new NameIterator()));
+				Console.WriteLine(project.RunRules());
 
 				Directory.CreateDirectory(args[1]);
 				project.SaveAssemblies(args[1]);

@@ -13,9 +13,11 @@ namespace Obfuscator.Structure
 	[DesignerCategory("code")]
 	[XmlType(AnonymousType = true)]
 	[XmlRoot("Obfuscator", Namespace = "", IsNullable = false)]
-	public partial class Project
+	public class Project
 	{
 		private DefaultAssemblyResolver _resolver;
+		[XmlIgnore]
+		public INameIteratorFabric NameIteratorFabric {get; set;}
 
 		/// <remarks/>
 		[XmlElement("Module")]
@@ -36,6 +38,10 @@ namespace Obfuscator.Structure
 			foreach (var module in Assemblies)
 			{
 				module.Resolve();
+			}
+			foreach (var module in Assemblies)
+			{
+				module.FindOverrides();
 			}
 		}
 
@@ -92,14 +98,14 @@ namespace Obfuscator.Structure
 		}
 
 
-		public string RunRules(INameIterator nameIterator)
+		public string RunRules()
 		{
 			var result = new StringBuilder();
 
 			foreach (var assembly in Assemblies)
 			{
 				result.AppendLine(assembly.Name);
-				result.AppendLine(assembly.RunRules(nameIterator));
+				result.AppendLine(assembly.RunRules());
 			}
 
 			return result.ToString();

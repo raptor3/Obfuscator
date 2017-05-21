@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Obfuscator>
-  <Module file="C:\Users\Vova\Documents\Visual Studio 2015\Projects\TestProject\TestProject\bin\Debug\TestProject.exe">
-    <SkipNamespace name="TestProjec" skipTypes="true"/>
+  <Module file="C:\Users\Vova\Documents\TestProject\TestProject\bin\Debug\TestProject.exe">
+    <SkipNamespace name="TestProjec" skipTypes="false"/>
   </Module>
-  <Module file="C:\Users\Vova\Documents\Visual Studio 2015\Projects\TestProject\TestProject2\bin\Debug\TestProject2.dll">
+  <Module file="C:\Users\Vova\Documents\TestProject\TestProject2\bin\Debug\TestProject2.exe">
     <SkipField type="Full.Namespace.TypeName" name="Pub.*"  />
     <SkipNamespace name="Company.PublicBits" skipTypes="true"/>
     <SkipField type="Full.Namespace.TypeName" name="Pub.*"  />

@@ -9,19 +9,22 @@ namespace Obfuscator.Structure
 	{
 		private MethodDefinition definition;
 		private Project project;
+		private Assembly assembly;
 		private string changes;
 		private List<MethodReference> references = new List<MethodReference>();
+		private MethodGroup group;
 
-		private bool notObfuscated;
+		private bool notObfuscated = true;
 
 		public string Changes
 		{
 			get { return changes; }
 		}
 
-		public Method(Project project)
+		public Method(Project project, Assembly assembly)
 		{
 			this.project = project;
+			this.assembly = assembly;
 		}
 
 		public void RegisterReference(MethodReference methodRef)
@@ -65,17 +68,36 @@ namespace Obfuscator.Structure
 			}
 		}
 
-		public bool ChangeName(string name, params ISkipMethod[] skipMethods)
+		public bool ChangeName(string name)
 		{
 			changes = definition.Name;
 
-			if (skipMethods.Any(r => r.IsMethodSkip(definition)))
+			if (assembly.SkipMethods.Any(r => r.IsMethodSkip(definition)))
 			{
 				return false;
 			}
 
-			return false;
-			//TODO
+			foreach (var methRef in references)
+			{
+				//methRef.Name = name;
+			}
+			changes += " -> " + name;
+			return true;
+		}
+
+		public void FindOverrides()
+		{
+			TypeReference typeRef = definition.DeclaringType.BaseType;
+			while (typeRef != null)
+			{
+				var typeDef = typeRef.Resolve();
+				foreach(var meth in typeDef.Methods)
+				{
+					
+				}
+
+				typeRef = typeDef.BaseType;
+			}
 		}
 	}
 }

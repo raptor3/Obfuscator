@@ -11,7 +11,7 @@ namespace Obfuscator.Structure
 	public class Type
 	{
 		private Project project;
-
+		private Assembly assembly;
 		private TypeDefinition definition;
 		private string changes;
 		private List<TypeReference> references = new List<TypeReference>();
@@ -25,9 +25,10 @@ namespace Obfuscator.Structure
 		private Dictionary<string, Property> properties = new Dictionary<string, Property>();
 		private Dictionary<string, Field> fields = new Dictionary<string, Field>();
 
-		public Type(Project prj)
+		public Type(Project project, Assembly assembly)
 		{
-			project = prj;
+			this.project = project;
+			this.assembly = assembly;
 		}
 
 		public void Resolve(TypeDefinition type)
@@ -37,39 +38,26 @@ namespace Obfuscator.Structure
 
 			foreach (var field in type.Fields)
 			{
-				Field fld;
-				if (!fields.TryGetValue(field.FullName, out fld))
-				{
-					fld = new Field(project);
-					fields.Add(field.FullName, fld);
-
-				}
-
-				fld.Resolve(field);
+				GetOrAddField(field).Resolve(field);
 			}
 
 			foreach (var prop in type.Properties)
 			{
-				Property prprty;
-				if (!properties.TryGetValue(prop.FullName, out prprty))
-				{
-					prprty = new Property(project);
-					properties.Add(prop.FullName, prprty);
-				}
-
-				prprty.Resolve(prop);
+				GetOrAddProperty(prop).Resolve(prop);
 			}
 
 			foreach (var method in type.Methods)
 			{
-				Method methd;
-				if (!methods.TryGetValue(method.FullName, out methd))
-				{
-					methd = new Method(project);
-					methods.Add(method.FullName, methd);
-				}
+				GetOrAddMethod(method).Resolve(method);
+			}
 
-				methd.Resolve(method);
+			if (type.BaseType != null)
+			{
+				project.RegistrateReference(type.BaseType);
+			}
+			foreach (var interf in type.Interfaces)
+			{
+				project.RegistrateReference(interf);
 			}
 		}
 
@@ -80,39 +68,17 @@ namespace Obfuscator.Structure
 
 		public void RegisterReference(FieldReference field)
 		{
-			Field fld;
-			if (!fields.TryGetValue(field.FullName, out fld))
-			{
-				fld = new Field(project);
-				fields.Add(field.FullName, fld);
-
-			}
-
-			fld.RegisterReference(field);
+			GetOrAddField(field).RegisterReference(field);
 		}
 
 		public void RegisterReference(PropertyReference prop)
 		{
-			Property prprty;
-			if (!properties.TryGetValue(prop.FullName, out prprty))
-			{
-				prprty = new Property(project);
-				properties.Add(prop.FullName, prprty);
-			}
-
-			prprty.RegisterReference(prop);
+			GetOrAddProperty(prop).RegisterReference(prop);
 		}
 
 		public void RegisterReference(MethodReference method)
 		{
-			Method methd;
-			if (!methods.TryGetValue(method.FullName, out methd))
-			{
-				methd = new Method(project);
-				methods.Add(method.FullName, methd);
-			}
-
-			methd.RegisterReference(method);
+			GetOrAddMethod(method).RegisterReference(method);
 		}
 
 		public Method GetMethod(MethodReference methodRef)
@@ -134,40 +100,29 @@ namespace Obfuscator.Structure
 			}
 		}
 
-		public string RunRules(INameIterator nameIterator, List<SkipNamespace> skipNamespaces, List<SkipType> skipTypes, List<SkipMethod> skipMethods, List<SkipField> skipFields, List<SkipProperty> skipProperties)
+		public string RunRules()
 		{
-			var iSkipMethods = new List<ISkipMethod>(skipMethods);
-			iSkipMethods.AddRange(skipNamespaces);
-			iSkipMethods.AddRange(skipTypes);
 
-			var iSkipProperties = new List<ISkipProperty>(skipProperties);
-			iSkipProperties.AddRange(skipNamespaces);
-			iSkipProperties.AddRange(skipTypes);
-
-			var iSkipFields = new List<ISkipField>(skipFields);
-			iSkipFields.AddRange(skipNamespaces);
-			iSkipFields.AddRange(skipTypes);
-
-			var skippedFields = new StringBuilder("SkippedFields");
-			var renamedFields = new StringBuilder("RenamedFields");
+			var skippedFields = new StringBuilder("SkippedFields : {");
+			var renamedFields = new StringBuilder("RenamedFields : {");
 			skippedFields.AppendLine();
 			renamedFields.AppendLine();
 
-			var skippedProperties = new StringBuilder("SkippedProperties");
-			var renamedProperties = new StringBuilder("RenamedProperties");
+			var skippedProperties = new StringBuilder("SkippedProperties : {");
+			var renamedProperties = new StringBuilder("RenamedProperties : {");
 			skippedProperties.AppendLine();
 			renamedProperties.AppendLine();
 
-			var skippedMethods = new StringBuilder("SkippedMethods");
-			var renamedMethods = new StringBuilder("RenamedMethods");
+			var skippedMethods = new StringBuilder("SkippedMethods : {");
+			var renamedMethods = new StringBuilder("RenamedMethods : {");
 			skippedMethods.AppendLine();
 			renamedMethods.AppendLine();
 
-			nameIterator.Reset();
+			var nameIterator = project.NameIteratorFabric.GetIterator();
 
 			foreach (var field in fields.Values)
 			{
-				if (field.ChangeName(nameIterator.Next(), iSkipFields.ToArray()))
+				if (field.ChangeName(nameIterator.Next()))
 				{
 					renamedFields.AppendLine(field.Changes);
 				}
@@ -181,7 +136,7 @@ namespace Obfuscator.Structure
 
 			foreach (var prop in properties.Values)
 			{
-				if (prop.ChangeName(nameIterator.Next(), iSkipProperties.ToArray()))
+				if (prop.ChangeName(nameIterator.Next()))
 				{
 					renamedProperties.AppendLine(prop.Changes);
 				}
@@ -195,7 +150,7 @@ namespace Obfuscator.Structure
 
 			foreach (var method in methods.Values)
 			{
-				if (method.ChangeName(nameIterator.Next(), iSkipMethods.ToArray()))
+				if (method.ChangeName(nameIterator.Next()))
 				{
 					renamedMethods.AppendLine(method.Changes);
 				}
@@ -204,6 +159,13 @@ namespace Obfuscator.Structure
 					skippedMethods.AppendLine(method.Changes);
 				}
 			}
+
+			skippedFields.AppendLine("}");
+			renamedFields.AppendLine("}");
+			skippedProperties.AppendLine("}");
+			renamedProperties.AppendLine("}");
+			skippedMethods.AppendLine("}");
+			renamedMethods.AppendLine("}");
 
 			var result = new StringBuilder();
 			result.AppendLine(skippedFields.ToString());
@@ -232,6 +194,48 @@ namespace Obfuscator.Structure
 			changes += " -> " + name;
 
 			return true;
+		}
+
+		public void FindOverrides()
+		{
+			foreach (var method in methods.Values)
+			{
+				method.FindOverrides();
+			}
+		}
+
+		private Method GetOrAddMethod(MethodReference method)
+		{
+			Method methd;
+			if (!methods.TryGetValue(method.FullName, out methd))
+			{
+				methd = new Method(project, assembly);
+				methods.Add(method.FullName, methd);
+			}
+			return methd;
+		}
+
+		private Field GetOrAddField(FieldReference field)
+		{
+			Field fld;
+			if (!fields.TryGetValue(field.FullName, out fld))
+			{
+				fld = new Field(project, assembly);
+				fields.Add(field.FullName, fld);
+
+			}
+			return fld;
+		}
+
+		private Property GetOrAddProperty(PropertyReference prop)
+		{
+			Property prprty;
+			if (!properties.TryGetValue(prop.FullName, out prprty))
+			{
+				prprty = new Property(project, assembly);
+				properties.Add(prop.FullName, prprty);
+			}
+			return prprty;
 		}
 	}
 }

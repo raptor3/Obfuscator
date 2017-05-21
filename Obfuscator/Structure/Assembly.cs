@@ -5,12 +5,13 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
 
 namespace Obfuscator.Structure
 {
-	public partial class Assembly
+	public class Assembly
 	{
 		private Project project;
 		private AssemblyDefinition assembly;
@@ -39,22 +40,44 @@ namespace Obfuscator.Structure
 		}
 
 		[XmlElement("SkipNamespace", typeof(SkipNamespace))]
-		public List<SkipNamespace> SkipNamespaces { get; set; }
+		public List<SkipNamespace> OnlySkipNamespaces { get; set; }
 
 		[XmlElement("SkipField", typeof(SkipField))]
-		public List<SkipField> SkipFields { get; set; }
+		public List<SkipField> OnlySkipFields { get; set; }
 
 		[XmlElement("SkipMethod", typeof(SkipMethod))]
-		public List<SkipMethod> SkipMethods { get; set; }
+		public List<SkipMethod> OnlySkipMethods { get; set; }
 
 		[XmlElement("SkipProperty", typeof(SkipProperty))]
-		public List<SkipProperty> SkipProperties { get; set; }
+		public List<SkipProperty> OnlySkipProperties { get; set; }
 
 		[XmlElement("SkipType", typeof(SkipType))]
-		public List<SkipType> SkipTypes { get; set; }
+		public List<SkipType> OnlySkipTypes { get; set; }
+
+		[XmlIgnore]
+		public List<ISkipNamespace> SkipNamespaces { get; set; }
+		[XmlIgnore]
+		public List<ISkipType> SkipTypes { get; set; }
+		[XmlIgnore]
+		public List<ISkipMethod> SkipMethods { get; set; }
+		[XmlIgnore]
+		public List<ISkipField> SkipFields { get; set; }
+		[XmlIgnore]
+		public List<ISkipProperty> SkipProperties { get; set; }
 
 		public void Resolve()
 		{
+			SkipNamespaces = OnlySkipNamespaces.Select(s => s as ISkipNamespace).ToList();
+			SkipTypes = OnlySkipTypes.Select(s => s as ISkipType).ToList();
+			SkipFields = OnlySkipFields.Select(s => s as ISkipField).ToList();
+			SkipMethods = OnlySkipMethods.Select(s => s as ISkipMethod).ToList();
+			SkipProperties = OnlySkipProperties.Select(s => s as ISkipProperty).ToList();
+
+			SkipTypes.AddRange(SkipNamespaces.Select(s => s as ISkipType));
+			SkipFields.AddRange(SkipTypes.Select(s=>s as ISkipField));
+			SkipMethods.AddRange(SkipTypes.Select(s => s as ISkipMethod));
+			SkipProperties.AddRange(SkipTypes.Select(s => s as ISkipProperty));
+
 			foreach (var type in assembly.MainModule.Types)
 			{
 				if (type.FullName == "<Module>")
@@ -65,10 +88,10 @@ namespace Obfuscator.Structure
 				Namespace nmspace;
 				if (!namespaces.TryGetValue(type.Namespace, out nmspace))
 				{
-					nmspace = new Namespace(project, type.Namespace);
+					nmspace = new Namespace(project, this, type.Namespace);
 					namespaces.Add(type.Namespace, nmspace);
 				}
-
+				
 				nmspace.Resolve(type);
 			}
 		}
@@ -98,20 +121,20 @@ namespace Obfuscator.Structure
 			return assembly.FullName == methRef.Resolve().Module.Assembly.FullName;
 		}
 
-		public string RunRules(INameIterator nameIterator)
+		public string RunRules()
 		{
-			nameIterator.Reset();
+			var nameIterator = project.NameIteratorFabric.GetIterator();
 
-			var skippedNamespace = new StringBuilder("SkippedNamespaces");
-			var renamedNamespace = new StringBuilder("RenamedNamespaces");
+			var skippedNamespace = new StringBuilder("SkippedNamespaces : {");
+			var renamedNamespace = new StringBuilder("RenamedNamespaces : {");
 			skippedNamespace.AppendLine();
 			renamedNamespace.AppendLine();
 
 			foreach (var nmspace in namespaces.Values)
 			{
-				string nmsR = nmspace.RunRules(nameIterator, SkipNamespaces, SkipTypes, SkipMethods, SkipFields, SkipProperties);
+				string nmsR = nmspace.RunRules();
 
-				if (nmspace.ChangeName(nameIterator.Next(), SkipNamespaces.ToArray()))
+				if (nmspace.ChangeName(nameIterator.Next()))
 				{
 					renamedNamespace.AppendLine(nmspace.Changes);
 					renamedNamespace.AppendLine(nmsR);
@@ -122,6 +145,9 @@ namespace Obfuscator.Structure
 				}
 			}
 
+			skippedNamespace.AppendLine("}");
+			renamedNamespace.AppendLine("}");
+
 			var result = new StringBuilder();
 			result.AppendLine(skippedNamespace.ToString());
 			result.AppendLine(renamedNamespace.ToString());
@@ -130,50 +156,22 @@ namespace Obfuscator.Structure
 
 		public void RegistrateReference(TypeReference typeRef)
 		{
-			Namespace nmspace;
-			if (!namespaces.TryGetValue(typeRef.Namespace, out nmspace))
-			{
-				nmspace = new Namespace(project, typeRef.Namespace);
-				namespaces.Add(typeRef.Namespace, nmspace);
-			}
-
-			nmspace.RegisterReference(typeRef);
+			GetOrAddNamespace(typeRef).RegisterReference(typeRef);
 		}
 
 		public void RegistrateReference(FieldReference fieldRef)
 		{
-			Namespace nmspace;
-			if (!namespaces.TryGetValue(fieldRef.DeclaringType.Namespace, out nmspace))
-			{
-				nmspace = new Namespace(project, fieldRef.DeclaringType.Namespace);
-				namespaces.Add(fieldRef.DeclaringType.Namespace, nmspace);
-			}
-
-			nmspace.RegisterReference(fieldRef);
+			GetOrAddNamespace(fieldRef.DeclaringType).RegisterReference(fieldRef);
 		}
 
 		public void RegistrateReference(PropertyReference propRef)
 		{
-			Namespace nmspace;
-			if (!namespaces.TryGetValue(propRef.DeclaringType.Namespace, out nmspace))
-			{
-				nmspace = new Namespace(project, propRef.DeclaringType.Namespace);
-				namespaces.Add(propRef.DeclaringType.Namespace, nmspace);
-			}
-
-			nmspace.RegisterReference(propRef);
+			GetOrAddNamespace(propRef.DeclaringType).RegisterReference(propRef);
 		}
 
 		public void RegistrateReference(MethodReference methRef)
 		{
-			Namespace nmspace;
-			if (!namespaces.TryGetValue(methRef.DeclaringType.Namespace, out nmspace))
-			{
-				nmspace = new Namespace(project, methRef.DeclaringType.Namespace);
-				namespaces.Add(methRef.DeclaringType.Namespace, nmspace);
-			}
-
-			nmspace.RegisterReference(methRef);
+			GetOrAddNamespace(methRef.DeclaringType).RegisterReference(methRef);
 		}
 
 		public Method GetMethod(MethodReference methRef)
@@ -185,6 +183,25 @@ namespace Obfuscator.Structure
 			}
 
 			return nmspace.GetMethod(methRef);
+		}
+
+		public void FindOverrides()
+		{
+			foreach (var nm in namespaces.Values)
+			{
+				nm.FindOverrides();
+			}
+		}
+
+		private Namespace GetOrAddNamespace(TypeReference typeRef)
+		{
+			Namespace nmspace;
+			if (!namespaces.TryGetValue(typeRef.Namespace, out nmspace))
+			{
+				nmspace = new Namespace(project, this, typeRef.Namespace);
+				namespaces.Add(typeRef.Namespace, nmspace);
+			}
+			return nmspace;
 		}
 	}
 }
