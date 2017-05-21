@@ -64,7 +64,7 @@ namespace Obfuscator.Structure
 
 		static bool IsEqual(this TypeReference method1, TypeReference method2)
 		{
-			return method1.Name == method2.Name && method1.Namespace == method2.Namespace;
+			return method1.FullName == method2.FullName;
 		}
 
 		public static bool SignatureMatches(this IMethodSignature self, IMethodSignature signature)

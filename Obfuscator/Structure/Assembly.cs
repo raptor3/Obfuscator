@@ -1,9 +1,6 @@
 ﻿using Mono.Cecil;
-using Obfuscator.Iterator;
 using Obfuscator.SkipRules;
-using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -17,10 +14,20 @@ namespace Obfuscator.Structure
 		private AssemblyDefinition assembly;
 		private Dictionary<string, Namespace> namespaces = new Dictionary<string, Namespace>();
 
-		public string Name { get { return assembly.FullName; } }
+		public string Name { get { return assembly?.FullName; } }
 
 		[XmlAttribute("file")]
 		public string File { get; set; }
+
+		public Assembly()
+		{
+		}
+
+		public Assembly(Project project, AssemblyDefinition assembly)
+		{
+			this.project = project;
+			this.assembly = assembly;
+		}
 
 		public void LoadAssemblies(DefaultAssemblyResolver resolver, Project prj)
 		{
@@ -67,16 +74,16 @@ namespace Obfuscator.Structure
 
 		public void Resolve()
 		{
-			SkipNamespaces = OnlySkipNamespaces.Select(s => s as ISkipNamespace).ToList();
-			SkipTypes = OnlySkipTypes.Select(s => s as ISkipType).ToList();
-			SkipFields = OnlySkipFields.Select(s => s as ISkipField).ToList();
-			SkipMethods = OnlySkipMethods.Select(s => s as ISkipMethod).ToList();
-			SkipProperties = OnlySkipProperties.Select(s => s as ISkipProperty).ToList();
+			SkipNamespaces = OnlySkipNamespaces?.Select(s => s as ISkipNamespace).ToList();
+			SkipTypes = OnlySkipTypes?.Select(s => s as ISkipType).ToList();
+			SkipFields = OnlySkipFields?.Select(s => s as ISkipField).ToList();
+			SkipMethods = OnlySkipMethods?.Select(s => s as ISkipMethod).ToList();
+			SkipProperties = OnlySkipProperties?.Select(s => s as ISkipProperty).ToList();
 
-			SkipTypes.AddRange(SkipNamespaces.Select(s => s as ISkipType));
-			SkipFields.AddRange(SkipTypes.Select(s=>s as ISkipField));
-			SkipMethods.AddRange(SkipTypes.Select(s => s as ISkipMethod));
-			SkipProperties.AddRange(SkipTypes.Select(s => s as ISkipProperty));
+			SkipTypes?.AddRange(SkipNamespaces.Select(s => s as ISkipType));
+			SkipFields?.AddRange(SkipTypes.Select(s=>s as ISkipField));
+			SkipMethods?.AddRange(SkipTypes.Select(s => s as ISkipMethod));
+			SkipProperties?.AddRange(SkipTypes.Select(s => s as ISkipProperty));
 
 			foreach (var type in assembly.MainModule.Types)
 			{
@@ -84,9 +91,8 @@ namespace Obfuscator.Structure
 				{
 					continue;
 				}
-
-				Namespace nmspace;
-				if (!namespaces.TryGetValue(type.Namespace, out nmspace))
+				
+				if (!namespaces.TryGetValue(type.Namespace, out Namespace nmspace))
 				{
 					nmspace = new Namespace(project, this, type.Namespace);
 					namespaces.Add(type.Namespace, nmspace);
@@ -98,27 +104,27 @@ namespace Obfuscator.Structure
 
 		public bool HasType(TypeReference typeRef)
 		{
-			return assembly.FullName == typeRef.Resolve().Module.Assembly.FullName;
+			return assembly.FullName == typeRef.Resolve()?.Module.Assembly.FullName;
 		}
 
 		public bool HasField(FieldReference fieldRef)
 		{
-			return assembly.FullName == fieldRef.Resolve().Module.Assembly.FullName;
+			return assembly.FullName == fieldRef.Resolve()?.Module.Assembly.FullName;
 		}
 
 		public void Save(string output)
 		{
-			assembly.Write(Path.Combine(output, Path.GetFileName(File)));
+			assembly?.Write(Path.Combine(output, Path.GetFileName(File)));
 		}
 
 		public bool HasProperty(PropertyReference propRef)
 		{
-			return assembly.FullName == propRef.Resolve().Module.Assembly.FullName;
+			return assembly.FullName == propRef.Resolve()?.Module.Assembly.FullName;
 		}
 
 		public bool HasMethod(MethodReference methRef)
 		{
-			return assembly.FullName == methRef.Resolve().Module.Assembly.FullName;
+			return assembly.FullName == methRef.Resolve()?.Module.Assembly.FullName;
 		}
 
 		public string RunRules()
@@ -176,8 +182,7 @@ namespace Obfuscator.Structure
 
 		public Method GetMethod(MethodReference methRef)
 		{
-			Namespace nmspace;
-			if (!namespaces.TryGetValue(methRef.DeclaringType.Namespace, out nmspace))
+			if (!namespaces.TryGetValue(methRef.DeclaringType.Namespace, out Namespace nmspace))
 			{
 				return null;
 			}
@@ -195,13 +200,20 @@ namespace Obfuscator.Structure
 
 		private Namespace GetOrAddNamespace(TypeReference typeRef)
 		{
-			Namespace nmspace;
-			if (!namespaces.TryGetValue(typeRef.Namespace, out nmspace))
+			if (!namespaces.TryGetValue(typeRef.Namespace, out Namespace nmspace))
 			{
 				nmspace = new Namespace(project, this, typeRef.Namespace);
 				namespaces.Add(typeRef.Namespace, nmspace);
 			}
 			return nmspace;
+		}
+
+		public void LoadAssemblieReferences()
+		{
+			foreach (var assRef in assembly.MainModule.AssemblyReferences)
+			{
+				project.AddAssembly(assRef);
+			}
 		}
 	}
 }

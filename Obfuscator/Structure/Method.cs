@@ -12,7 +12,7 @@ namespace Obfuscator.Structure
 		private Assembly assembly;
 		private string changes;
 		private List<MethodReference> references = new List<MethodReference>();
-		private MethodGroup group;
+		public MethodGroup Group { get; set; }
 
 		private bool notObfuscated = true;
 
@@ -25,6 +25,7 @@ namespace Obfuscator.Structure
 		{
 			this.project = project;
 			this.assembly = assembly;
+			Group = new MethodGroup(this);
 		}
 
 		public void RegisterReference(MethodReference methodRef)
@@ -70,33 +71,63 @@ namespace Obfuscator.Structure
 
 		public bool ChangeName(string name)
 		{
-			changes = definition.Name;
-
-			if (assembly.SkipMethods.Any(r => r.IsMethodSkip(definition)))
+			if (!notObfuscated || Group.Methods.Any(m => !m.WillChanged()))
 			{
 				return false;
 			}
-
-			foreach (var methRef in references)
+			foreach (var m in Group.Methods)
 			{
-				//methRef.Name = name;
+				m.changes = definition.Name;
+				foreach (var methRef in m.references)
+				{
+					methRef.Name = name;
+				}
+				m.notObfuscated = false;
+
+				m.changes += " -> " + name;
 			}
-			changes += " -> " + name;
 			return true;
+		}
+
+		public bool WillChanged()
+		{
+			return project.Assemblies.Any(a => a.Name == assembly.Name) && !definition.IsConstructor && !assembly.SkipMethods.Any(r => r.IsMethodSkip(definition));
 		}
 
 		public void FindOverrides()
 		{
-			TypeReference typeRef = definition.DeclaringType.BaseType;
-			while (typeRef != null)
+			if (!definition.IsNewSlot && definition.IsVirtual)
 			{
-				var typeDef = typeRef.Resolve();
-				foreach(var meth in typeDef.Methods)
+				TypeReference typeRef = definition.DeclaringType.BaseType;
+				while (typeRef != null)
 				{
-					
+					var typeDef = typeRef.Resolve();
+					foreach (var meth in typeDef?.Methods)
+					{
+						if (definition.SignatureMatches(meth))
+						{
+							var m = project.GetMethod(meth);
+							Group = new MethodGroup(this, m);
+							m.Group = Group;
+							break;
+						}
+					}
+					typeRef = typeDef.BaseType;
 				}
-
-				typeRef = typeDef.BaseType;
+			}
+			foreach (var interf in definition.DeclaringType.Interfaces)
+			{
+				var typeDef = interf.Resolve();
+				foreach (var meth in typeDef?.Methods)
+				{
+					if (definition.SignatureMatches(meth))
+					{
+						var m = project.GetMethod(meth);
+						Group = new MethodGroup(this, m);
+						m.Group = Group;
+						break;
+					}
+				}
 			}
 		}
 	}

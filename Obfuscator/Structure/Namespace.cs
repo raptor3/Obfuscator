@@ -28,12 +28,11 @@ namespace Obfuscator.Structure
 
 		private Type GetOrAddType(TypeReference type)
 		{
-			Type tpe;
-			if (!types.TryGetValue(type.FullName, out tpe))
+			if (!types.TryGetValue(type.Name, out Type tpe))
 			{
 				tpe = new Type(project, assembly);
 
-				types.Add(type.FullName, tpe);
+				types.Add(type.Name, tpe);
 			}
 			return tpe;
 		}
@@ -65,9 +64,7 @@ namespace Obfuscator.Structure
 
 		public Method GetMethod(MethodReference methodRef)
 		{
-			Type tpe;
-
-			if (!types.TryGetValue(methodRef.DeclaringType.FullName, out tpe))
+			if (!types.TryGetValue(methodRef.DeclaringType.Name, out Type tpe))
 			{
 				return null;
 			}
@@ -79,7 +76,7 @@ namespace Obfuscator.Structure
 		{
 			changes = name;
 
-			if (assembly.SkipNamespaces.Any(r => r.IsNamespaceSkip(this.name)))
+			if (assembly.SkipNamespaces.Any(r => r.IsNamespaceSkip(name)))
 			{
 				return false;
 			}

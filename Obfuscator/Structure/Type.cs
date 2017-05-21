@@ -83,8 +83,7 @@ namespace Obfuscator.Structure
 
 		public Method GetMethod(MethodReference methodRef)
 		{
-			Method methd;
-			if (!methods.TryGetValue(methodRef.FullName, out methd))
+			if (!methods.TryGetValue(methodRef.FullName, out Method methd))
 			{
 				return null;
 			}
@@ -206,8 +205,7 @@ namespace Obfuscator.Structure
 
 		private Method GetOrAddMethod(MethodReference method)
 		{
-			Method methd;
-			if (!methods.TryGetValue(method.FullName, out methd))
+			if (!methods.TryGetValue(method.FullName, out Method methd))
 			{
 				methd = new Method(project, assembly);
 				methods.Add(method.FullName, methd);
@@ -217,8 +215,7 @@ namespace Obfuscator.Structure
 
 		private Field GetOrAddField(FieldReference field)
 		{
-			Field fld;
-			if (!fields.TryGetValue(field.FullName, out fld))
+			if (!fields.TryGetValue(field.FullName, out Field fld))
 			{
 				fld = new Field(project, assembly);
 				fields.Add(field.FullName, fld);
@@ -229,8 +226,7 @@ namespace Obfuscator.Structure
 
 		private Property GetOrAddProperty(PropertyReference prop)
 		{
-			Property prprty;
-			if (!properties.TryGetValue(prop.FullName, out prprty))
+			if (!properties.TryGetValue(prop.FullName, out Property prprty))
 			{
 				prprty = new Property(project, assembly);
 				properties.Add(prop.FullName, prprty);

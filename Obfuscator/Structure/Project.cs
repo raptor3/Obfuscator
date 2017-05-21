@@ -17,25 +17,52 @@ namespace Obfuscator.Structure
 	{
 		private DefaultAssemblyResolver _resolver;
 		[XmlIgnore]
-		public INameIteratorFabric NameIteratorFabric {get; set;}
+		public INameIteratorFabric NameIteratorFabric { get; set; }
 
 		/// <remarks/>
 		[XmlElement("Module")]
-		public Assembly[] Assemblies { get; set; }
+		public List<Assembly> Assemblies { get; set; }
+		[XmlIgnore]
+		public List<Assembly> AssembliesReferences { get; set; }
 
 		public void Load(DefaultAssemblyResolver resolver)
 		{
+			AssembliesReferences = new List<Assembly>();
 			_resolver = resolver;
 
 			foreach (var module in Assemblies)
 			{
 				module.LoadAssemblies(resolver, this);
 			}
+			foreach (var module in Assemblies)
+			{
+				module.LoadAssemblieReferences();
+			}
+		}
+
+		public void AddAssembly(AssemblyNameReference ass)
+		{
+			var assembly = Assemblies.SingleOrDefault(a => a.Name == ass.FullName) ?? AssembliesReferences.SingleOrDefault(a => a.Name == ass.FullName);
+			if (assembly == null)
+			{
+				AssembliesReferences.Add(
+					new Assembly(this, _resolver.Resolve(ass, new ReaderParameters
+					{
+						ReadingMode = ReadingMode.Immediate,
+						ReadSymbols = false,
+						AssemblyResolver = _resolver
+					}))
+				);
+			}
 		}
 
 		public void Resolve()
 		{
 			foreach (var module in Assemblies)
+			{
+				module.Resolve();
+			}
+			foreach (var module in AssembliesReferences)
 			{
 				module.Resolve();
 			}
@@ -47,7 +74,7 @@ namespace Obfuscator.Structure
 
 		public void RegistrateReference(TypeReference typeRef)
 		{
-			var assemblyToObfuscate = Assemblies.SingleOrDefault(a => a.HasType(typeRef));
+			var assemblyToObfuscate = Assemblies.SingleOrDefault(a => a.HasType(typeRef)) ?? AssembliesReferences.SingleOrDefault(a => a.HasType(typeRef));
 
 			if (assemblyToObfuscate != null)
 			{
@@ -57,7 +84,7 @@ namespace Obfuscator.Structure
 
 		public void RegistrateReference(FieldReference fieldRef)
 		{
-			var assemblyToObfuscate = Assemblies.SingleOrDefault(a => a.HasField(fieldRef));
+			var assemblyToObfuscate = Assemblies.SingleOrDefault(a => a.HasField(fieldRef)) ?? AssembliesReferences.SingleOrDefault(a => a.HasField(fieldRef));
 
 			if (assemblyToObfuscate != null)
 			{
@@ -67,7 +94,7 @@ namespace Obfuscator.Structure
 
 		public void RegistrateReference(PropertyReference propRef)
 		{
-			var assemblyToObfuscate = Assemblies.SingleOrDefault(a => a.HasProperty(propRef));
+			var assemblyToObfuscate = Assemblies.SingleOrDefault(a => a.HasProperty(propRef)) ?? AssembliesReferences.SingleOrDefault(a => a.HasProperty(propRef));
 
 			if (assemblyToObfuscate != null)
 			{
@@ -77,7 +104,7 @@ namespace Obfuscator.Structure
 
 		public void RegistrateReference(MethodReference methRef)
 		{
-			var assemblyToObfuscate = Assemblies.SingleOrDefault(a => a.HasMethod(methRef));
+			var assemblyToObfuscate = Assemblies.SingleOrDefault(a => a.HasMethod(methRef)) ?? AssembliesReferences.SingleOrDefault(a => a.HasMethod(methRef));
 
 			if (assemblyToObfuscate != null)
 			{
@@ -87,7 +114,7 @@ namespace Obfuscator.Structure
 
 		public Method GetMethod(MethodReference methRef)
 		{
-			var assemblyToObfuscate = Assemblies.SingleOrDefault(a => a.HasMethod(methRef));
+			var assemblyToObfuscate = Assemblies.SingleOrDefault(a => a.HasMethod(methRef)) ?? AssembliesReferences.SingleOrDefault(a => a.HasMethod(methRef));
 
 			if (assemblyToObfuscate != null)
 			{

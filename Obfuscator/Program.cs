@@ -35,9 +35,11 @@ namespace Obfuscator
 				XmlSchemaSet schemas = new XmlSchemaSet();
 				schemas.Add("", "PropertiesSchema.xsd");
 
-				XmlReaderSettings settings = new XmlReaderSettings();
-				settings.ValidationType = ValidationType.Schema;
-				settings.Schemas = schemas;
+				XmlReaderSettings settings = new XmlReaderSettings()
+				{
+					ValidationType = ValidationType.Schema,
+					Schemas = schemas
+				};
 				settings.ValidationEventHandler += new ValidationEventHandler(ValidationCallBack);
 
 				XmlReader reader = XmlReader.Create(args[0], settings);
@@ -49,11 +51,12 @@ namespace Obfuscator
 				project.Load(new DefaultAssemblyResolver());
 				project.Resolve();
 				Console.WriteLine();
-				Console.WriteLine(project.RunRules());
+				var result = project.RunRules();
+				Console.WriteLine(result);
 
 				Directory.CreateDirectory(args[1]);
 				project.SaveAssemblies(args[1]);
-
+				File.WriteAllText(args[1] + @"\result.txt", result);
 				Console.WriteLine("Completed, {0:f2} secs.", (Environment.TickCount - start) / 1000.0);
 			}
 			catch (Exception e)
