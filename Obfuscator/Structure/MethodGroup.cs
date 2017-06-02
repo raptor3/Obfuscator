@@ -23,11 +23,20 @@ namespace Obfuscator.Structure
 			}
 			if (first.Group == null)
 			{
-				this.Methods.Add(first);
-			}
+                if (!Methods.Contains(first))
+                {
+                    Methods.Add(first);
+                }
+            }
 			else
 			{
-				this.Methods.AddRange(first.Group.Methods);
+                foreach(var m in first.Group.Methods)
+                {
+                    if (!Methods.Contains(m))
+                    {
+                        Methods.Add(m);
+                    }
+                }
 			}
 		}
 

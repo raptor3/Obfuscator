@@ -12,9 +12,27 @@ namespace Obfuscator.Structure
 		private Assembly assembly;
 		private string changes;
 		private List<MethodReference> references = new List<MethodReference>();
-		public MethodGroup Group { get; set; }
+        private MethodGroup _group;
+		public MethodGroup Group { get
+            {
+                return _group;
+            }
+            set
+            {
+                if (_group == null)
+                {
+                    _group = value;
+                    return;
+                }
+                var methods = _group.Methods;
+                foreach (var m in methods)
+                {
+                    m._group = value;
+                }
+            }
+        }
 
-		private bool notObfuscated = true;
+		private bool obfuscated = false;
 
 		public string Changes
 		{
@@ -71,18 +89,35 @@ namespace Obfuscator.Structure
 
 		public bool ChangeName(string name)
 		{
-			if (!notObfuscated || Group.Methods.Any(m => !m.WillChanged()))
+			if (Group.Methods.Any(m => !m.WillChanged()))
 			{
 				return false;
 			}
 			foreach (var m in Group.Methods)
 			{
-				m.changes = definition.Name;
-				foreach (var methRef in m.references)
+				m.changes = m.definition.Name;
+                m.definition.Name = name;
+
+                var nameIterator = project.NameIteratorFabric.GetIterator();
+
+                //foreach (var g in definition.GenericParameters)
+                //{
+                //    g.Name = nameIterator.Next();
+                //}
+                
+                foreach (var methRef in m.references)
 				{
-					methRef.Name = name;
-				}
-				m.notObfuscated = false;
+                    //if (methRef.IsGenericInstance)
+                    //{
+                        //methRef.GetElementMethod().Name = name;
+                    //}
+                    //else
+                    {
+                        methRef.Name = name;
+                        methRef.GetElementMethod().Name = name;
+                    }
+                }
+				m.obfuscated = true;                
 
 				m.changes += " -> " + name;
 			}
@@ -91,7 +126,7 @@ namespace Obfuscator.Structure
 
 		public bool WillChanged()
 		{
-			return project.Assemblies.Any(a => a.Name == assembly.Name) && !definition.IsConstructor && !assembly.SkipMethods.Any(r => r.IsMethodSkip(definition));
+			return !obfuscated && project.Assemblies.Any(a => a.Name == assembly.Name) && !definition.IsConstructor && !assembly.SkipMethods.Any(r => r.IsMethodSkip(definition));
 		}
 
 		public void FindOverrides()
@@ -104,12 +139,11 @@ namespace Obfuscator.Structure
 					var typeDef = typeRef.Resolve();
 					foreach (var meth in typeDef?.Methods)
 					{
-						if (definition.SignatureMatches(meth))
+						if (definition.Name == meth.Name)
 						{
 							var m = project.GetMethod(meth);
 							Group = new MethodGroup(this, m);
 							m.Group = Group;
-							break;
 						}
 					}
 					typeRef = typeDef.BaseType;
@@ -120,12 +154,11 @@ namespace Obfuscator.Structure
 				var typeDef = interf.Resolve();
 				foreach (var meth in typeDef?.Methods)
 				{
-					if (definition.SignatureMatches(meth))
+					if (definition.Name == meth.Name)
 					{
 						var m = project.GetMethod(meth);
 						Group = new MethodGroup(this, m);
 						m.Group = Group;
-						break;
 					}
 				}
 			}

@@ -34,7 +34,7 @@ namespace Obfuscator.Structure
 		public void Resolve(TypeDefinition type)
 		{
 			definition = type;
-			references.Add(type);
+			RegisterReference(type);
 
 			foreach (var field in type.Fields)
 			{
@@ -64,6 +64,14 @@ namespace Obfuscator.Structure
 		public void RegisterReference(TypeReference typeRef)
 		{
 			references.Add(typeRef);
+            if (typeRef.IsGenericInstance)
+            {
+                foreach (var g in (typeRef as GenericInstanceType).GenericArguments)
+                {
+                    project.RegistrateReference(g);
+                }
+            }
+
 		}
 
 		public void RegisterReference(FieldReference field)
@@ -83,7 +91,7 @@ namespace Obfuscator.Structure
 
 		public Method GetMethod(MethodReference methodRef)
 		{
-			if (!methods.TryGetValue(methodRef.FullName, out Method methd))
+			if (!methods.TryGetValue(methodRef.Resolve().FullName, out Method methd))
 			{
 				return null;
 			}
@@ -185,9 +193,16 @@ namespace Obfuscator.Structure
 				return false;
 			}
 
-			foreach (var type in references)
+            var nameIterator = project.NameIteratorFabric.GetIterator();
+
+            foreach (var g in definition.GenericParameters)
+            {                
+                g.Name = nameIterator.Next();
+            }
+            
+            foreach (var type in references)
 			{
-				type.Name = name;
+                type.GetElementType().Name = name;
 			}
 
 			changes += " -> " + name;
@@ -205,10 +220,10 @@ namespace Obfuscator.Structure
 
 		private Method GetOrAddMethod(MethodReference method)
 		{
-			if (!methods.TryGetValue(method.FullName, out Method methd))
+			if (!methods.TryGetValue(method.Resolve().FullName, out Method methd))
 			{
 				methd = new Method(project, assembly);
-				methods.Add(method.FullName, methd);
+				methods.Add(method.Resolve().FullName, methd);
 			}
 			return methd;
 		}

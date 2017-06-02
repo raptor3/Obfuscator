@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.26430.6
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Obfuscator", "Obfuscator\Obfuscator.csproj", "{8AD56A60-CD77-4C09-81D4-52FFEF62C3F1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestProject", "TestProject\TestProject.csproj", "{5F2EFA1E-2227-4C4A-ABB4-FF98F0145078}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{8AD56A60-CD77-4C09-81D4-52FFEF62C3F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8AD56A60-CD77-4C09-81D4-52FFEF62C3F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8AD56A60-CD77-4C09-81D4-52FFEF62C3F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5F2EFA1E-2227-4C4A-ABB4-FF98F0145078}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5F2EFA1E-2227-4C4A-ABB4-FF98F0145078}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5F2EFA1E-2227-4C4A-ABB4-FF98F0145078}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5F2EFA1E-2227-4C4A-ABB4-FF98F0145078}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

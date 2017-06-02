@@ -59,14 +59,10 @@ namespace Obfuscator
 				File.WriteAllText(args[1] + @"\result.txt", result);
 				Console.WriteLine("Completed, {0:f2} secs.", (Environment.TickCount - start) / 1000.0);
 			}
-			catch (Exception e)
+			finally
 			{
 				Console.WriteLine();
-				Console.Error.WriteLine("An error occurred during processing:");
-				Console.Error.WriteLine(e.Message);
-				if (e.InnerException != null)
-					Console.Error.WriteLine(e.InnerException.Message);
-				return 1;
+
 			}
 			return 0;
 		}
