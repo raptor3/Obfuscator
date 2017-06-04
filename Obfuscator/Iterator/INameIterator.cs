@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Obfuscator.Iterator
+﻿namespace Obfuscator.Iterator
 {
-	public interface INameIterator
+    public interface INameIterator
 	{
 
 		void Reset();

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace Obfuscator.Structure
 {
@@ -23,20 +20,20 @@ namespace Obfuscator.Structure
 			}
 			if (first.Group == null)
 			{
-                if (!Methods.Contains(first))
-                {
-                    Methods.Add(first);
-                }
-            }
+				if (!Methods.Contains(first))
+				{
+					Methods.Add(first);
+				}
+			}
 			else
 			{
-                foreach(var m in first.Group.Methods)
-                {
-                    if (!Methods.Contains(m))
-                    {
-                        Methods.Add(m);
-                    }
-                }
+				foreach (var m in first.Group.Methods)
+				{
+					if (!Methods.Contains(m))
+					{
+						Methods.Add(m);
+					}
+				}
 			}
 		}
 

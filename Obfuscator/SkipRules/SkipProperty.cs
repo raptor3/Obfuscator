@@ -1,13 +1,12 @@
 ﻿using Mono.Cecil;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
 using System.Xml.Serialization;
 
 namespace Obfuscator.SkipRules
 {
-	[Serializable()]
+    [Serializable()]
 	[DesignerCategory("code")]
 	[XmlType(AnonymousType = true)]
 	public class SkipProperty : ISkipProperty

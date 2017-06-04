@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using Obfuscator.SkipRules;
 using System.Linq;
-using System;
 
 namespace Obfuscator.Structure
 {
-	public class Field
+    public class Field
 	{
 		private Project project;
 		private Assembly assembly;

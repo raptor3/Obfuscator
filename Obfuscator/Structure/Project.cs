@@ -1,4 +1,5 @@
 ﻿using Mono.Cecil;
+using Mono.Cecil.Cil;
 using Obfuscator.Iterator;
 using System;
 using System.Collections.Generic;
@@ -72,6 +73,31 @@ namespace Obfuscator.Structure
 			}
 		}
 
+		public void RegistrateInstruction(Instruction instruction)
+		{
+			var fieldReference = instruction.Operand as FieldReference;
+			var typeReference = instruction.Operand as TypeReference;
+			var propertyReference = instruction.Operand as PropertyReference;
+			var methodReference = instruction.Operand as MethodReference;
+
+			if (fieldReference != null)
+			{
+				RegistrateReference(fieldReference);
+			}
+			if (typeReference != null)
+			{
+				RegistrateReference(typeReference);
+			}
+			if (propertyReference != null)
+			{
+				RegistrateReference(propertyReference);
+			}
+			if (methodReference != null)
+			{
+				RegistrateReference(methodReference);
+			}
+		}
+
 		public void RegistrateReference(TypeReference typeRef)
 		{
 			var assemblyToObfuscate = Assemblies.SingleOrDefault(a => a.HasType(typeRef)) ?? AssembliesReferences.SingleOrDefault(a => a.HasType(typeRef));
@@ -123,7 +149,6 @@ namespace Obfuscator.Structure
 
 			return null;
 		}
-
 
 		public string RunRules()
 		{

@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Obfuscator.Iterator
+﻿namespace Obfuscator.Iterator
 {
-	public class AlphabetIteratorFabric : INameIteratorFabric
+    public class AlphabetIteratorFabric : INameIteratorFabric
 	{
 		public INameIterator GetIterator()
 		{

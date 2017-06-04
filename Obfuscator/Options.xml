@@ -3,8 +3,8 @@
   <Module file="TestProject.exe">
     <SkipNamespace name="TestProjec" skipTypes="false"/>
   </Module>
-  <!--<Module file="C:\Users\Vova\Documents\TestProject\TestProject2\bin\Debug\TestProject2.exe">
-    <SkipField type="Full.Namespace.TypeName" name="Pub.*"  />
+  <Module file="TestProject2.exe">
+  <!--  <SkipField type="Full.Namespace.TypeName" name="Pub.*"  />
     <SkipNamespace name="Company.PublicBits" skipTypes="true"/>
     <SkipField type="Full.Namespace.TypeName" name="Pub.*"  />
     <SkipType name="Full.Namespace.TypeName2" skipMethods="true" skipProperties="true" />
@@ -13,6 +13,6 @@
     <SkipMethod type="Full.Namespace.TypeName3" name=".*" />
     <SkipMethod type="Full.Namespace.TypeName3" name=".*" />
     <SkipProperty type="Full.Namespace.TypeName4" name=".*" />
-    <SkipProperty type="Full.Namespace.TypeName4" name=".*" />
-  </Module>-->
+    <SkipProperty type="Full.Namespace.TypeName4" name=".*" />-->
+  </Module>
 </Obfuscator>

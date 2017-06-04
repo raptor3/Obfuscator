@@ -70,7 +70,6 @@
     <Compile Include="SkipRules\ISkipProperty.cs" />
     <Compile Include="Structure\Field.cs" />
     <Compile Include="Structure\Method.cs" />
-    <Compile Include="Structure\MethodExtensions.cs" />
     <Compile Include="Structure\MethodGroup.cs" />
     <Compile Include="Structure\Namespace.cs" />
     <Compile Include="Program.cs" />

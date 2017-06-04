@@ -1,8 +1,5 @@
 ﻿using Mono.Cecil;
 using System.Collections.Generic;
-using System;
-using Obfuscator.Iterator;
-using Obfuscator.SkipRules;
 using System.Linq;
 using System.Text;
 
@@ -17,7 +14,7 @@ namespace Obfuscator.Structure
 		private string name;
 		private Dictionary<string, Type> types = new Dictionary<string, Type>();
 
-		public string Changes {get { return changes; } }
+		public string Changes { get { return changes; } }
 
 		public Namespace(Project project, Assembly assembly, string name)
 		{
@@ -59,7 +56,7 @@ namespace Obfuscator.Structure
 
 		public void Resolve(TypeDefinition type)
 		{
-			GetOrAddType(type).Resolve(type);		
+			GetOrAddType(type).Resolve(type);
 		}
 
 		public Method GetMethod(MethodReference methodRef)
@@ -108,7 +105,8 @@ namespace Obfuscator.Structure
 				{
 					renamedTypes.AppendLine(type.Changes);
 					renamedTypes.AppendLine(typeR);
-				} else
+				}
+				else
 				{
 					skippedTypes.AppendLine(type.Changes);
 					skippedTypes.AppendLine(typeR);

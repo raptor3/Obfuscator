@@ -1,7 +1,5 @@
 ﻿using Mono.Cecil;
 using System.Collections.Generic;
-using System;
-using Obfuscator.Iterator;
 using Obfuscator.SkipRules;
 using System.Linq;
 using System.Text;
@@ -15,15 +13,14 @@ namespace Obfuscator.Structure
 		private TypeDefinition definition;
 		private string changes;
 		private List<TypeReference> references = new List<TypeReference>();
+		private Dictionary<string, Method> methods = new Dictionary<string, Method>();
+		private Dictionary<string, Property> properties = new Dictionary<string, Property>();
+		private Dictionary<string, Field> fields = new Dictionary<string, Field>();
 
 		public string Changes
 		{
 			get { return changes; }
 		}
-
-		private Dictionary<string, Method> methods = new Dictionary<string, Method>();
-		private Dictionary<string, Property> properties = new Dictionary<string, Property>();
-		private Dictionary<string, Field> fields = new Dictionary<string, Field>();
 
 		public Type(Project project, Assembly assembly)
 		{
@@ -64,28 +61,38 @@ namespace Obfuscator.Structure
 		public void RegisterReference(TypeReference typeRef)
 		{
 			references.Add(typeRef);
-            if (typeRef.IsGenericInstance)
-            {
-                foreach (var g in (typeRef as GenericInstanceType).GenericArguments)
-                {
-                    project.RegistrateReference(g);
-                }
-            }
-
+			if (typeRef.IsGenericInstance)
+			{
+				var genericInstance = typeRef as GenericInstanceType;
+				foreach (var genericArguments in genericInstance.GenericArguments)
+				{
+					project.RegistrateReference(genericArguments);
+				}
+			}
+			foreach (var genericParameters in typeRef.GenericParameters)
+			{
+				foreach (var constraint in genericParameters.Constraints)
+				{
+					project.RegistrateReference(constraint);
+				}
+			}
 		}
 
 		public void RegisterReference(FieldReference field)
 		{
+			RegisterReference(field.DeclaringType);
 			GetOrAddField(field).RegisterReference(field);
 		}
 
 		public void RegisterReference(PropertyReference prop)
 		{
+			RegisterReference(prop.DeclaringType);
 			GetOrAddProperty(prop).RegisterReference(prop);
 		}
 
 		public void RegisterReference(MethodReference method)
 		{
+			RegisterReference(method.DeclaringType);
 			GetOrAddMethod(method).RegisterReference(method);
 		}
 
@@ -103,7 +110,11 @@ namespace Obfuscator.Structure
 		{
 			foreach (var type in references)
 			{
-				type.Namespace = newNamespace;
+				if (!type.IsGenericInstance)
+				{
+					type.Namespace = newNamespace;
+				}
+				type.GetElementType().Namespace = newNamespace;
 			}
 		}
 
@@ -157,7 +168,9 @@ namespace Obfuscator.Structure
 
 			foreach (var method in methods.Values)
 			{
-				if (method.ChangeName(nameIterator.Next()))
+				method.ChangeName(nameIterator.Next());
+
+				if (method.IsObfuscated)
 				{
 					renamedMethods.AppendLine(method.Changes);
 				}
@@ -188,21 +201,21 @@ namespace Obfuscator.Structure
 		{
 			changes = definition.Name;
 
-			if (skipTypes.Any(r=> r.IsTypeSkip(definition)))
+			if (skipTypes.Any(r => r.IsTypeSkip(definition)))
 			{
 				return false;
 			}
 
-            var nameIterator = project.NameIteratorFabric.GetIterator();
+			var nameIterator = project.NameIteratorFabric.GetIterator();
 
-            foreach (var g in definition.GenericParameters)
-            {                
-                g.Name = nameIterator.Next();
-            }
-            
-            foreach (var type in references)
+			foreach (var genericParameters in definition.GenericParameters)
 			{
-                type.GetElementType().Name = name;
+				genericParameters.Name = nameIterator.Next();
+			}
+
+			foreach (var type in references)
+			{
+				type.GetElementType().Name = name;
 			}
 
 			changes += " -> " + name;
