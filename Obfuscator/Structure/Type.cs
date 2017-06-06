@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Obfuscator.SkipRules;
 using System.Linq;
 using System.Text;
+using Mono.Cecil.Cil;
 
 namespace Obfuscator.Structure
 {
@@ -56,6 +57,19 @@ namespace Obfuscator.Structure
 			{
 				project.RegistrateReference(interf);
 			}
+
+			MethodDefinition met = new MethodDefinition("Test",
+		MethodAttributes.Private | MethodAttributes.Static,
+		assembly.TypeSystem.Int32);
+			definition.Methods.Add(met);
+
+			var worker = met.Body.GetILProcessor();
+			var msg = worker.Create(OpCodes.Ldstr, "Hello!");
+			MethodReference writeline = assembly.Import(typeof(System.Console).GetMethod("WriteLine", new System.Type[] { typeof(string) }));
+			met.Body.Instructions.Add(msg);
+			met.Body.Instructions.Add(Instruction.Create(OpCodes.Call, writeline));
+			met.Body.Instructions.Add(Instruction.Create(OpCodes.Ldc_I4, 35));
+			met.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
 		}
 
 		public void RegisterReference(TypeReference typeRef)

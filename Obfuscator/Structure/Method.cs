@@ -1,4 +1,6 @@
 ﻿using Mono.Cecil;
+using Mono.Cecil.Cil;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -84,6 +86,43 @@ namespace Obfuscator.Structure
 				return;
 			}
 
+			//var writeLineMethod = typeof(System.Console).GetMethod("WriteLine", new System.Type[] { typeof(string) });
+			//var writeLineRef = assembly.Import(writeLineMethod);
+			//method.Body.Instructions.Insert(0, Instruction.Create(OpCodes.Ldstr, "Inject!"));
+			//// Вызываем метод Console.WriteLine, параметры он берет со стека - в данном случае строку "Injected".
+			//method.Body.Instructions.Insert(1, Instruction.Create(OpCodes.Call, writeLineRef));
+
+			//obfuscate const
+
+			if (!method.IsConstructor)
+			{
+				//List<Instruction> prefix = new List<Instruction>();
+				//List<Instruction> suffix = new List<Instruction>();
+				//var newBody = GetSwitch(ref prefix, ref suffix);
+				//var prefix = method.Body.Instructions.Take(6).ToList();
+				//var suffix = method.Body.Instructions.Last();
+				//method.Body.Instructions.Insert(0, s);
+				//method.Body.Instructions.Clear();
+				//foreach (var ins in prefix)
+				//{
+				//	method.Body.Instructions.Add(ins);
+				//}
+				//var firstIns = method.Body.Instructions.First();
+				//var lastIns = method.Body.Instructions.Last();
+				//var proc = method.Body.GetILProcessor();
+
+				//foreach (var ins in prefix)
+				//{
+				//	proc.InsertBefore(firstIns, ins);
+				//}
+				//foreach (var ins in suffix)
+				//{
+				//	proc.InsertAfter(lastIns, ins);
+				//}
+				////method.Body.Instructions.Add(suffix);
+				//proc.Remove(lastIns);
+			}
+
 			foreach (var instruction in method.Body.Instructions)
 			{
 				project.RegistrateInstruction(instruction);
@@ -167,6 +206,49 @@ namespace Obfuscator.Structure
 					}
 				}
 			}
+		}
+		public static Random rand = new Random();
+
+		public ICollection<Instruction> GetSwitch(ref List<Instruction> prefix, ref List<Instruction> suffix)
+		{
+			var result = prefix;
+
+			var switchEl = rand.Next(5412);
+			var offset = switchEl - rand.Next(5);
+			var endOfswitch = Instruction.Create(OpCodes.Nop);
+			var defaultSwitch = Instruction.Create(OpCodes.Nop);
+
+			result.Add(Instruction.Create(OpCodes.Ldc_I4, switchEl));
+			result.Add(Instruction.Create(OpCodes.Ldc_I4, offset));
+			result.Add(Instruction.Create(OpCodes.Sub));
+
+			var labels = new Instruction[5];
+			for(int i = 0; i < labels.Length; i++)
+			{
+				labels[i] = Instruction.Create(OpCodes.Nop);
+			}
+
+			result.Add(Instruction.Create(OpCodes.Switch, labels));
+			result.Add(Instruction.Create(OpCodes.Br_S, defaultSwitch));
+
+			for (var i = 0; i < labels.Length; i++)
+			{
+				var label = labels[i];
+				result.Add(label);
+
+				if (i == switchEl - offset)
+				{
+					result = suffix;
+				}
+				result.Add(Instruction.Create(OpCodes.Br_S, endOfswitch));
+			}
+
+			result.Add(defaultSwitch);
+			//result.AddRange(instructions);
+			result.Add(Instruction.Create(OpCodes.Br_S, endOfswitch));
+			result.Add(endOfswitch);
+			result.Add(Instruction.Create(OpCodes.Ret));
+			return result;
 		}
 	}
 }

@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
+using System;
+using System.Reflection;
 
 namespace Obfuscator.Structure
 {
@@ -27,6 +29,11 @@ namespace Obfuscator.Structure
 		{
 			this.project = project;
 			this.assembly = assembly;
+		}
+
+		public TypeSystem TypeSystem
+		{
+			get { return assembly.MainModule.TypeSystem; }
 		}
 
 		public void LoadAssemblies(DefaultAssemblyResolver resolver, Project prj)
@@ -69,6 +76,12 @@ namespace Obfuscator.Structure
 		public List<ISkipMethod> SkipMethods { get; set; }
 		[XmlIgnore]
 		public List<ISkipField> SkipFields { get; set; }
+
+		public MethodReference Import(MethodInfo method)
+		{
+			return assembly.MainModule.Import(method);
+		}
+
 		[XmlIgnore]
 		public List<ISkipProperty> SkipProperties { get; set; }
 
