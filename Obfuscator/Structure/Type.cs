@@ -17,8 +17,9 @@ namespace Obfuscator.Structure
 		private Dictionary<string, Method> methods = new Dictionary<string, Method>();
 		private Dictionary<string, Property> properties = new Dictionary<string, Property>();
 		private Dictionary<string, Field> fields = new Dictionary<string, Field>();
+	    private MethodDefinition stringHider;
 
-		public string Changes
+        public string Changes
 		{
 			get { return changes; }
 		}
@@ -44,7 +45,30 @@ namespace Obfuscator.Structure
 				GetOrAddProperty(prop).Resolve(prop);
 			}
 
-			foreach (var method in type.Methods)
+            if (!definition.IsInterface)
+            {
+                stringHider = new MethodDefinition(
+    "Test",
+    MethodAttributes.Private | MethodAttributes.Static ,
+    assembly.TypeSystem.String);
+                definition.Methods.Add(stringHider);
+
+                var worker = stringHider.Body.GetILProcessor();
+                stringHider.Parameters.Add(new ParameterDefinition(assembly.TypeSystem.String));
+
+                stringHider.Body.InitLocals = true;
+                worker.Append(worker.Create(OpCodes.Nop));
+                worker.Append(worker.Create(OpCodes.Ldarg_0));
+                stringHider.Body.Variables.Add(new VariableDefinition(assembly.TypeSystem.String));
+                worker.Append(worker.Create(OpCodes.Stloc_0));
+                var read = worker.Create(OpCodes.Ldloc_0);
+                worker.Append(worker.Create(OpCodes.Br_S, read));
+                worker.Append(read);
+                worker.Append(worker.Create(OpCodes.Ret));
+                stringHider.Body.MaxStackSize = 1;
+            }
+
+            foreach (var method in type.Methods)
 			{
 				GetOrAddMethod(method).Resolve(method);
 			}
@@ -58,18 +82,7 @@ namespace Obfuscator.Structure
 				project.RegistrateReference(interf);
 			}
 
-			MethodDefinition met = new MethodDefinition("Test",
-		MethodAttributes.Private | MethodAttributes.Static,
-		assembly.TypeSystem.Int32);
-			definition.Methods.Add(met);
 
-			var worker = met.Body.GetILProcessor();
-			var msg = worker.Create(OpCodes.Ldstr, "Hello!");
-			MethodReference writeline = assembly.Import(typeof(System.Console).GetMethod("WriteLine", new System.Type[] { typeof(string) }));
-			met.Body.Instructions.Add(msg);
-			met.Body.Instructions.Add(Instruction.Create(OpCodes.Call, writeline));
-			met.Body.Instructions.Add(Instruction.Create(OpCodes.Ldc_I4, 35));
-			met.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
 		}
 
 		public void RegisterReference(TypeReference typeRef)
@@ -211,11 +224,11 @@ namespace Obfuscator.Structure
 			return result.ToString();
 		}
 
-		public bool ChangeName(string name, params ISkipType[] skipTypes)
+		public bool ChangeName(string name)
 		{
 			changes = definition.Name;
 
-			if (skipTypes.Any(r => r.IsTypeSkip(definition)))
+			if (assembly.SkipTypes.Any(r => r.IsTypeSkip(definition)))
 			{
 				return false;
 			}
@@ -249,7 +262,7 @@ namespace Obfuscator.Structure
 		{
 			if (!methods.TryGetValue(method.Resolve().FullName, out Method methd))
 			{
-				methd = new Method(project, assembly);
+				methd = new Method(project, assembly, stringHider);
 				methods.Add(method.Resolve().FullName, methd);
 			}
 			return methd;
@@ -275,5 +288,14 @@ namespace Obfuscator.Structure
 			}
 			return prprty;
 		}
+
+	    public void HideStrings()
+	    {
+	        if (definition.IsInterface) return;
+            foreach (var method in methods.Values)
+            {
+                method.HideStrings();
+            }
+        }
 	}
 }

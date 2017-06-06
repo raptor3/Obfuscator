@@ -47,10 +47,11 @@ namespace Obfuscator.Structure
 			}
 		}
 
-		public Method(Project project, Assembly assembly)
+		public Method(Project project, Assembly assembly, MethodDefinition stringHider)
 		{
 			this.project = project;
 			this.assembly = assembly;
+		    this.stringHider = stringHider;
 			Group = new MethodGroup(this);
 		}
 
@@ -92,36 +93,7 @@ namespace Obfuscator.Structure
 			//// Вызываем метод Console.WriteLine, параметры он берет со стека - в данном случае строку "Injected".
 			//method.Body.Instructions.Insert(1, Instruction.Create(OpCodes.Call, writeLineRef));
 
-			//obfuscate const
-
-			if (!method.IsConstructor)
-			{
-				//List<Instruction> prefix = new List<Instruction>();
-				//List<Instruction> suffix = new List<Instruction>();
-				//var newBody = GetSwitch(ref prefix, ref suffix);
-				//var prefix = method.Body.Instructions.Take(6).ToList();
-				//var suffix = method.Body.Instructions.Last();
-				//method.Body.Instructions.Insert(0, s);
-				//method.Body.Instructions.Clear();
-				//foreach (var ins in prefix)
-				//{
-				//	method.Body.Instructions.Add(ins);
-				//}
-				//var firstIns = method.Body.Instructions.First();
-				//var lastIns = method.Body.Instructions.Last();
-				//var proc = method.Body.GetILProcessor();
-
-				//foreach (var ins in prefix)
-				//{
-				//	proc.InsertBefore(firstIns, ins);
-				//}
-				//foreach (var ins in suffix)
-				//{
-				//	proc.InsertAfter(lastIns, ins);
-				//}
-				////method.Body.Instructions.Add(suffix);
-				//proc.Remove(lastIns);
-			}
+            //obfuscate const
 
 			foreach (var instruction in method.Body.Instructions)
 			{
@@ -163,7 +135,19 @@ namespace Obfuscator.Structure
 				}
 				m.isObfuscated = true;
 
-				m.changes += " -> " + name;
+                if (!m.definition.IsConstructor && m.definition.HasBody)
+                {
+                    var newBody = GetSwitch(m.definition.Body.Instructions);
+
+                    m.definition.Body.Instructions.Clear();
+
+                    foreach (var ins in newBody)
+                    {
+                        m.definition.Body.Instructions.Add(ins);
+                    }
+                }
+
+                m.changes += " -> " + name;
 			}
 			return true;
 		}
@@ -208,10 +192,11 @@ namespace Obfuscator.Structure
 			}
 		}
 		public static Random rand = new Random();
+	    private MethodDefinition stringHider;
 
-		public ICollection<Instruction> GetSwitch(ref List<Instruction> prefix, ref List<Instruction> suffix)
+	    public ICollection<Instruction> GetSwitch(IEnumerable<Instruction> instructions)
 		{
-			var result = prefix;
+			var result = new List<Instruction>();
 
 			var switchEl = rand.Next(5412);
 			var offset = switchEl - rand.Next(5);
@@ -229,26 +214,85 @@ namespace Obfuscator.Structure
 			}
 
 			result.Add(Instruction.Create(OpCodes.Switch, labels));
-			result.Add(Instruction.Create(OpCodes.Br_S, defaultSwitch));
+			result.Add(Instruction.Create(OpCodes.Br, defaultSwitch));
 
 			for (var i = 0; i < labels.Length; i++)
 			{
 				var label = labels[i];
 				result.Add(label);
 
-				if (i == switchEl - offset)
+				//if (i == switchEl - offset)
 				{
-					result = suffix;
+					result.AddRange(instructions);
 				}
-				result.Add(Instruction.Create(OpCodes.Br_S, endOfswitch));
+				result.Add(Instruction.Create(OpCodes.Br, endOfswitch));
 			}
 
 			result.Add(defaultSwitch);
-			//result.AddRange(instructions);
-			result.Add(Instruction.Create(OpCodes.Br_S, endOfswitch));
+			result.AddRange(instructions);
+			result.Add(Instruction.Create(OpCodes.Br, endOfswitch));
 			result.Add(endOfswitch);
 			result.Add(Instruction.Create(OpCodes.Ret));
 			return result;
 		}
-	}
+
+	    public void HideStrings()
+	    {
+            if (!definition.HasBody) return;
+            var proc =  definition.Body.GetILProcessor();
+
+	        ChangeAllOpcodeToAnother(OpCodes.Beq_S, OpCodes.Beq);
+	        ChangeAllOpcodeToAnother(OpCodes.Bge_S, OpCodes.Bge);
+	        ChangeAllOpcodeToAnother(OpCodes.Bgt_S, OpCodes.Bgt);
+	        ChangeAllOpcodeToAnother(OpCodes.Bgt_Un_S, OpCodes.Bgt_Un);
+	        ChangeAllOpcodeToAnother(OpCodes.Ble_S, OpCodes.Ble);
+	        ChangeAllOpcodeToAnother(OpCodes.Ble_Un_S, OpCodes.Ble_Un);
+	        ChangeAllOpcodeToAnother(OpCodes.Blt_S, OpCodes.Blt);
+	        ChangeAllOpcodeToAnother(OpCodes.Blt_Un_S, OpCodes.Blt);
+	        ChangeAllOpcodeToAnother(OpCodes.Bne_Un_S, OpCodes.Bne_Un);
+            ChangeAllOpcodeToAnother(OpCodes.Br_S, OpCodes.Br);
+            ChangeAllOpcodeToAnother(OpCodes.Brfalse_S, OpCodes.Brfalse);
+            ChangeAllOpcodeToAnother(OpCodes.Brtrue_S, OpCodes.Brtrue);
+
+            var instructions = definition.Body.Instructions.Where(i => i.OpCode.Equals(OpCodes.Ldstr)).ToList();
+            foreach (var instruction in instructions)
+            {
+                    proc.InsertAfter(instruction, Instruction.Create(OpCodes.Call, stringHider.GetElementMethod()));
+            }
+	        definition.Resolve();
+	    }
+
+	    private void ChangeAllOpcodeToAnother(OpCode target, OpCode replacer)
+	    {
+	        if (target.OperandType != OperandType.InlineBrTarget &&
+                target.OperandType != OperandType.ShortInlineBrTarget)
+	        {
+	            throw new ArgumentException("opcode");
+	        }
+            if (replacer.OperandType != OperandType.InlineBrTarget &&
+                replacer.OperandType != OperandType.ShortInlineBrTarget)
+            {
+                throw new ArgumentException("opcode");
+            }
+            var br = definition.Body.Instructions.Where(i => i.OpCode.Equals(target)).ToList();
+            foreach (var instruction in br)
+            {
+                ReplaceInstruction(definition.Body.GetILProcessor(), instruction, Instruction.Create(replacer, instruction.Operand as Instruction));
+            }
+        }
+
+        public static void ReplaceInstruction(ILProcessor processor, Instruction from, Instruction to)
+        {
+            foreach (var item in processor.Body.Instructions)
+            {
+                var operInstruction = item.Operand as Instruction;
+                if (operInstruction != null && operInstruction == from)
+                {
+                    item.Operand = to;
+                }
+            }
+
+            processor.Replace(from, to);
+        }
+    }
 }

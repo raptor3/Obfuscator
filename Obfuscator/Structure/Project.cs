@@ -170,5 +170,13 @@ namespace Obfuscator.Structure
 				assembly.Save(output);
 			}
 		}
+
+	    public void HideStrings()
+	    {
+            foreach (var assembly in Assemblies)
+            {
+                assembly.HideStrings();
+            }
+        }
 	}
 }

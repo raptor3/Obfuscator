@@ -32,11 +32,11 @@ namespace Obfuscator.Structure
 			references.Add(fieldDef);
 		}
 
-		public bool ChangeName(string name, params ISkipField[] skipFields)
+		public bool ChangeName(string name)
 		{
 			changes = definition.Name;
 
-			if (skipFields.Any(r => r.IsFieldSkip(definition)))
+			if (assembly.SkipFields.Any(r => r.IsFieldSkip(definition)))
 			{
 				return false;
 			}

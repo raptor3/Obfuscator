@@ -130,6 +130,14 @@ namespace Obfuscator.Structure
 				type.FindOverrides();
 			}
 		}
+
+	    public void HideStrings()
+	    {
+            foreach (var type in types.Values)
+            {
+                type.HideStrings();
+            }
+        }
 	}
 
 

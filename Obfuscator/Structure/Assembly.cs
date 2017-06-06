@@ -228,5 +228,13 @@ namespace Obfuscator.Structure
 				project.AddAssembly(assRef);
 			}
 		}
+
+	    public void HideStrings()
+	    {
+            foreach (var nmspace in namespaces.Values)
+            {
+                nmspace.HideStrings();
+            }
+        }
 	}
 }

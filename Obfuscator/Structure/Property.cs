@@ -29,10 +29,10 @@ namespace Obfuscator.Structure
 			references.Add(propRef);
 		}
 
-		public bool ChangeName(string name, params ISkipProperty[] skipProperties)
+		public bool ChangeName(string name)
 		{
 			changes = definition.Name;
-			if (skipProperties.Any( r=> r.IsPropertySkip(definition)))
+			if (assembly.SkipProperties.Any( r=> r.IsPropertySkip(definition)))
 			{
 				return false;
 			}
