@@ -131,12 +131,9 @@ namespace Obfuscator.Structure
 			}
 		}
 
-	    public void HideStrings()
+	    public IEnumerable<StringInstruction> GetStringInstructions()
 	    {
-            foreach (var type in types.Values)
-            {
-                type.HideStrings();
-            }
+	        return types.Values.SelectMany(t => t.GetStringInstructions());
         }
 	}
 

@@ -11,22 +11,15 @@ namespace Obfuscator.Structure
 		private MethodDefinition definition;
 		private Project project;
 		private Assembly assembly;
-		private string changes;
-		private List<MethodReference> references = new List<MethodReference>();
+	    private List<MethodReference> references = new List<MethodReference>();
 		private MethodGroup _group;
-		private bool isObfuscated = false;
+        public static Random rand = new Random();
 
-		public string Changes
-		{
-			get { return changes; }
-		}
+        public string Changes { get; private set; }
 
-		public bool IsObfuscated
-		{
-			get { return isObfuscated; }
-		}
+	    public bool IsObfuscated { get; private set; }
 
-		public MethodGroup Group
+	    public MethodGroup Group
 		{
 			get
 			{
@@ -47,11 +40,10 @@ namespace Obfuscator.Structure
 			}
 		}
 
-		public Method(Project project, Assembly assembly, MethodDefinition stringHider)
+		public Method(Project project, Assembly assembly)
 		{
 			this.project = project;
 			this.assembly = assembly;
-		    this.stringHider = stringHider;
 			Group = new MethodGroup(this);
 		}
 
@@ -87,15 +79,23 @@ namespace Obfuscator.Structure
 				return;
 			}
 
-			//var writeLineMethod = typeof(System.Console).GetMethod("WriteLine", new System.Type[] { typeof(string) });
-			//var writeLineRef = assembly.Import(writeLineMethod);
-			//method.Body.Instructions.Insert(0, Instruction.Create(OpCodes.Ldstr, "Inject!"));
-			//// Вызываем метод Console.WriteLine, параметры он берет со стека - в данном случае строку "Injected".
-			//method.Body.Instructions.Insert(1, Instruction.Create(OpCodes.Call, writeLineRef));
 
             //obfuscate const
+		    var proc = method.Body.GetILProcessor();
+            proc.ChangeAllOpcodeToAnother(OpCodes.Beq_S, OpCodes.Beq);
+            proc.ChangeAllOpcodeToAnother(OpCodes.Bge_S, OpCodes.Bge);
+            proc.ChangeAllOpcodeToAnother(OpCodes.Bgt_S, OpCodes.Bgt);
+            proc.ChangeAllOpcodeToAnother(OpCodes.Bgt_Un_S, OpCodes.Bgt_Un);
+            proc.ChangeAllOpcodeToAnother(OpCodes.Ble_S, OpCodes.Ble);
+            proc.ChangeAllOpcodeToAnother(OpCodes.Ble_Un_S, OpCodes.Ble_Un);
+            proc.ChangeAllOpcodeToAnother(OpCodes.Blt_S, OpCodes.Blt);
+            proc.ChangeAllOpcodeToAnother(OpCodes.Blt_Un_S, OpCodes.Blt);
+            proc.ChangeAllOpcodeToAnother(OpCodes.Bne_Un_S, OpCodes.Bne_Un);
+            proc.ChangeAllOpcodeToAnother(OpCodes.Br_S, OpCodes.Br);
+            proc.ChangeAllOpcodeToAnother(OpCodes.Brfalse_S, OpCodes.Brfalse);
+            proc.ChangeAllOpcodeToAnother(OpCodes.Brtrue_S, OpCodes.Brtrue);
 
-			foreach (var instruction in method.Body.Instructions)
+            foreach (var instruction in method.Body.Instructions)
 			{
 				project.RegistrateInstruction(instruction);
 			}
@@ -103,9 +103,9 @@ namespace Obfuscator.Structure
 
 		public bool ChangeName(string name)
 		{
-			if (!isObfuscated)
+			if (!IsObfuscated)
 			{
-				changes = definition.Name;
+				Changes = definition.Name;
 			}
 
 			if (Group.Methods.Any(m => !m.WillChanged()))
@@ -115,7 +115,7 @@ namespace Obfuscator.Structure
 
 			foreach (var m in Group.Methods)
 			{
-				m.changes = m.definition.Name;
+				m.Changes = m.definition.Name;
 				m.definition.Name = name;
 
 				var nameIterator = project.NameIteratorFabric.GetIterator();
@@ -133,7 +133,7 @@ namespace Obfuscator.Structure
 					}
 					methRef.GetElementMethod().Name = name;
 				}
-				m.isObfuscated = true;
+				m.IsObfuscated = true;
 
                 if (!m.definition.IsConstructor && m.definition.HasBody)
                 {
@@ -147,14 +147,14 @@ namespace Obfuscator.Structure
                     }
                 }
 
-                m.changes += " -> " + name;
+                m.Changes += " -> " + name;
 			}
 			return true;
 		}
 
 		public bool WillChanged()
 		{
-			return !isObfuscated && project.Assemblies.Any(a => a.Name == assembly.Name) && !definition.IsConstructor && !assembly.SkipMethods.Any(r => r.IsMethodSkip(definition));
+			return !IsObfuscated && project.Assemblies.Any(a => a.Name == assembly.Name) && !definition.IsConstructor && !assembly.SkipMethods.Any(r => r.IsMethodSkip(definition));
 		}
 
 		public void FindOverrides()
@@ -191,9 +191,6 @@ namespace Obfuscator.Structure
 				}
 			}
 		}
-		public static Random rand = new Random();
-	    private MethodDefinition stringHider;
-
 	    public ICollection<Instruction> GetSwitch(IEnumerable<Instruction> instructions)
 		{
 			var result = new List<Instruction>();
@@ -236,63 +233,12 @@ namespace Obfuscator.Structure
 			return result;
 		}
 
-	    public void HideStrings()
+	    public IEnumerable<StringInstruction> GetStringInstructions()
 	    {
-            if (!definition.HasBody) return;
+            if (!definition.HasBody) return new StringInstruction[0];
             var proc =  definition.Body.GetILProcessor();
 
-	        ChangeAllOpcodeToAnother(OpCodes.Beq_S, OpCodes.Beq);
-	        ChangeAllOpcodeToAnother(OpCodes.Bge_S, OpCodes.Bge);
-	        ChangeAllOpcodeToAnother(OpCodes.Bgt_S, OpCodes.Bgt);
-	        ChangeAllOpcodeToAnother(OpCodes.Bgt_Un_S, OpCodes.Bgt_Un);
-	        ChangeAllOpcodeToAnother(OpCodes.Ble_S, OpCodes.Ble);
-	        ChangeAllOpcodeToAnother(OpCodes.Ble_Un_S, OpCodes.Ble_Un);
-	        ChangeAllOpcodeToAnother(OpCodes.Blt_S, OpCodes.Blt);
-	        ChangeAllOpcodeToAnother(OpCodes.Blt_Un_S, OpCodes.Blt);
-	        ChangeAllOpcodeToAnother(OpCodes.Bne_Un_S, OpCodes.Bne_Un);
-            ChangeAllOpcodeToAnother(OpCodes.Br_S, OpCodes.Br);
-            ChangeAllOpcodeToAnother(OpCodes.Brfalse_S, OpCodes.Brfalse);
-            ChangeAllOpcodeToAnother(OpCodes.Brtrue_S, OpCodes.Brtrue);
-
-            var instructions = definition.Body.Instructions.Where(i => i.OpCode.Equals(OpCodes.Ldstr)).ToList();
-            foreach (var instruction in instructions)
-            {
-                    proc.InsertAfter(instruction, Instruction.Create(OpCodes.Call, stringHider.GetElementMethod()));
-            }
-	        definition.Resolve();
+            return definition.Body.Instructions.Where(i => i.OpCode.Equals(OpCodes.Ldstr)).Select(i => StringInstruction.GetInstructionWrapper(i, proc)).ToList();
 	    }
-
-	    private void ChangeAllOpcodeToAnother(OpCode target, OpCode replacer)
-	    {
-	        if (target.OperandType != OperandType.InlineBrTarget &&
-                target.OperandType != OperandType.ShortInlineBrTarget)
-	        {
-	            throw new ArgumentException("opcode");
-	        }
-            if (replacer.OperandType != OperandType.InlineBrTarget &&
-                replacer.OperandType != OperandType.ShortInlineBrTarget)
-            {
-                throw new ArgumentException("opcode");
-            }
-            var br = definition.Body.Instructions.Where(i => i.OpCode.Equals(target)).ToList();
-            foreach (var instruction in br)
-            {
-                ReplaceInstruction(definition.Body.GetILProcessor(), instruction, Instruction.Create(replacer, instruction.Operand as Instruction));
-            }
-        }
-
-        public static void ReplaceInstruction(ILProcessor processor, Instruction from, Instruction to)
-        {
-            foreach (var item in processor.Body.Instructions)
-            {
-                var operInstruction = item.Operand as Instruction;
-                if (operInstruction != null && operInstruction == from)
-                {
-                    item.Operand = to;
-                }
-            }
-
-            processor.Replace(from, to);
-        }
     }
 }

@@ -17,7 +17,6 @@ namespace Obfuscator.Structure
 		private Dictionary<string, Method> methods = new Dictionary<string, Method>();
 		private Dictionary<string, Property> properties = new Dictionary<string, Property>();
 		private Dictionary<string, Field> fields = new Dictionary<string, Field>();
-	    private MethodDefinition stringHider;
 
         public string Changes
 		{
@@ -44,29 +43,6 @@ namespace Obfuscator.Structure
 			{
 				GetOrAddProperty(prop).Resolve(prop);
 			}
-
-            if (!definition.IsInterface)
-            {
-                stringHider = new MethodDefinition(
-    "Test",
-    MethodAttributes.Private | MethodAttributes.Static ,
-    assembly.TypeSystem.String);
-                definition.Methods.Add(stringHider);
-
-                var worker = stringHider.Body.GetILProcessor();
-                stringHider.Parameters.Add(new ParameterDefinition(assembly.TypeSystem.String));
-
-                stringHider.Body.InitLocals = true;
-                worker.Append(worker.Create(OpCodes.Nop));
-                worker.Append(worker.Create(OpCodes.Ldarg_0));
-                stringHider.Body.Variables.Add(new VariableDefinition(assembly.TypeSystem.String));
-                worker.Append(worker.Create(OpCodes.Stloc_0));
-                var read = worker.Create(OpCodes.Ldloc_0);
-                worker.Append(worker.Create(OpCodes.Br_S, read));
-                worker.Append(read);
-                worker.Append(worker.Create(OpCodes.Ret));
-                stringHider.Body.MaxStackSize = 1;
-            }
 
             foreach (var method in type.Methods)
 			{
@@ -289,13 +265,10 @@ namespace Obfuscator.Structure
 			return prprty;
 		}
 
-	    public void HideStrings()
+	    public IEnumerable<StringInstruction> GetStringInstructions()
 	    {
-	        if (definition.IsInterface) return;
-            foreach (var method in methods.Values)
-            {
-                method.HideStrings();
-            }
+	        if (definition.IsInterface) return new StringInstruction[0];
+	        return methods.Values.SelectMany(m => m.GetStringInstructions());
         }
 	}
 }

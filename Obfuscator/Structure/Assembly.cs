@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
-using System;
 using System.Reflection;
 
 namespace Obfuscator.Structure
@@ -76,16 +75,20 @@ namespace Obfuscator.Structure
 		public List<ISkipMethod> SkipMethods { get; set; }
 		[XmlIgnore]
 		public List<ISkipField> SkipFields { get; set; }
-
-		public MethodReference Import(MethodInfo method)
-		{
-			return assembly.MainModule.Import(method);
-		}
-
 		[XmlIgnore]
 		public List<ISkipProperty> SkipProperties { get; set; }
 
-		public void Resolve()
+        public MethodReference Import(MethodInfo method)
+        {
+            return assembly.MainModule.Import(method);
+        }
+
+        public TypeReference Import(System.Type type)
+        {
+            return assembly.MainModule.Import(type);
+        }
+
+        public void Resolve()
 		{
 			SkipNamespaces = OnlySkipNamespaces?.Select(s => s as ISkipNamespace).ToList();
 			SkipTypes = OnlySkipTypes?.Select(s => s as ISkipType).ToList();
@@ -231,10 +234,14 @@ namespace Obfuscator.Structure
 
 	    public void HideStrings()
 	    {
-            foreach (var nmspace in namespaces.Values)
-            {
-                nmspace.HideStrings();
-            }
-        }
+	        var stringInstructions = namespaces.Values.SelectMany(n => n.GetStringInstructions()).ToList();
+	        var stringHider = new StringHider(project, this, stringInstructions);
+            stringHider.HideStrings();
+	    }
+
+	    public void AddType(TypeDefinition typeDefinition)
+	    {
+	        assembly.MainModule.Types.Add(typeDefinition);
+	    }
 	}
 }
