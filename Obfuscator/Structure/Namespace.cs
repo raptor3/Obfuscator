@@ -1,4 +1,5 @@
 ﻿using Mono.Cecil;
+using Obfuscator.Structure.Instrucitons;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -131,10 +132,35 @@ namespace Obfuscator.Structure
 			}
 		}
 
-	    public IEnumerable<StringInstruction> GetStringInstructions()
-	    {
-	        return types.Values.SelectMany(t => t.GetStringInstructions());
-        }
+		public IEnumerable<StringInstruction> GetStringInstructions()
+		{
+			return types.Values.SelectMany(t => t.GetStringInstructions());
+		}
+
+		public IEnumerable<NumberInstruction<long>> GetLongInstructions()
+		{
+			return types.Values.SelectMany(t => t.GetLongInstructions());
+		}
+
+		public IEnumerable<NumberInstruction<double>> GetDoubleInstructions()
+		{
+			return types.Values.SelectMany(t => t.GetDoubleInstructions());
+		}
+
+		public IEnumerable<NumberInstruction<float>> GetFloatInstructions()
+		{
+			return types.Values.SelectMany(t => t.GetFloatInstructions());
+		}
+
+		public IEnumerable<NumberInstruction<int>> GetIntInstructions()
+		{
+			return types.Values.SelectMany(t => t.GetIntInstructions());
+		}
+
+		public IEnumerable<NumberInstruction<sbyte>> GetShortInstructions()
+		{
+			return types.Values.SelectMany(t => t.GetShortInstructions());
+		}
 	}
 
 

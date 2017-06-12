@@ -78,17 +78,17 @@ namespace Obfuscator.Structure
 		[XmlIgnore]
 		public List<ISkipProperty> SkipProperties { get; set; }
 
-        public MethodReference Import(MethodInfo method)
-        {
-            return assembly.MainModule.Import(method);
-        }
+		public MethodReference Import(MethodInfo method)
+		{
+			return assembly.MainModule.Import(method);
+		}
 
-        public TypeReference Import(System.Type type)
-        {
-            return assembly.MainModule.Import(type);
-        }
+		public TypeReference Import(System.Type type)
+		{
+			return assembly.MainModule.Import(type);
+		}
 
-        public void Resolve()
+		public void Resolve()
 		{
 			SkipNamespaces = OnlySkipNamespaces?.Select(s => s as ISkipNamespace).ToList();
 			SkipTypes = OnlySkipTypes?.Select(s => s as ISkipType).ToList();
@@ -97,7 +97,7 @@ namespace Obfuscator.Structure
 			SkipProperties = OnlySkipProperties?.Select(s => s as ISkipProperty).ToList();
 
 			SkipTypes?.AddRange(SkipNamespaces.Select(s => s as ISkipType));
-			SkipFields?.AddRange(SkipTypes.Select(s=>s as ISkipField));
+			SkipFields?.AddRange(SkipTypes.Select(s => s as ISkipField));
 			SkipMethods?.AddRange(SkipTypes.Select(s => s as ISkipMethod));
 			SkipProperties?.AddRange(SkipTypes.Select(s => s as ISkipProperty));
 
@@ -107,13 +107,13 @@ namespace Obfuscator.Structure
 				{
 					continue;
 				}
-				
+
 				if (!namespaces.TryGetValue(type.Namespace, out Namespace nmspace))
 				{
 					nmspace = new Namespace(project, this, type.Namespace);
 					namespaces.Add(type.Namespace, nmspace);
 				}
-				
+
 				nmspace.Resolve(type);
 			}
 		}
@@ -160,7 +160,8 @@ namespace Obfuscator.Structure
 				{
 					renamedNamespace.AppendLine(nmspace.Changes);
 					renamedNamespace.AppendLine(nmsR);
-				} else
+				}
+				else
 				{
 					skippedNamespace.AppendLine(nmspace.Changes);
 					skippedNamespace.AppendLine(nmsR);
@@ -232,16 +233,33 @@ namespace Obfuscator.Structure
 			}
 		}
 
-	    public void HideStrings()
-	    {
-	        var stringInstructions = namespaces.Values.SelectMany(n => n.GetStringInstructions()).ToList();
-	        var stringHider = new StringHider(project, this, stringInstructions);
-            stringHider.HideStrings();
-	    }
+		public void HideConstants()
+		{
+			var stringInstructions = namespaces.Values.SelectMany(n => n.GetStringInstructions()).ToList();
+			var doubleInstructions = namespaces.Values.SelectMany(n => n.GetDoubleInstructions()).ToList();
+			var longInstructions = namespaces.Values.SelectMany(n => n.GetLongInstructions()).ToList();
+			var floatInstructions = namespaces.Values.SelectMany(n => n.GetFloatInstructions()).ToList();
+			var intInstructions = namespaces.Values.SelectMany(n => n.GetIntInstructions()).ToList();
+			var shortInstructions = namespaces.Values.SelectMany(n => n.GetShortInstructions()).ToList();
+			var hiderClass = new HiderClass(project, this);
+			hiderClass.CreateHiderClass();
+			hiderClass.HideStrings(stringInstructions);
+			hiderClass.HideDoubles(doubleInstructions);
+			hiderClass.HideLongs(longInstructions);
+			hiderClass.HideFloats(floatInstructions);
+			hiderClass.HideInts(intInstructions);
+			hiderClass.HideBytes(shortInstructions);
+			hiderClass.FinalizeHiderClass();
+		}
 
-	    public void AddType(TypeDefinition typeDefinition)
-	    {
-	        assembly.MainModule.Types.Add(typeDefinition);
-	    }
+		public void AddType(TypeDefinition typeDefinition)
+		{
+			assembly.MainModule.Types.Add(typeDefinition);
+		}
+
+		public MethodReference Import(ConstructorInfo constructor)
+		{
+			return assembly.MainModule.Import(constructor);
+		}
 	}
 }

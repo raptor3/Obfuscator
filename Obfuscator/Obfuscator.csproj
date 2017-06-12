@@ -70,7 +70,8 @@
     <Compile Include="SkipRules\ISkipProperty.cs" />
     <Compile Include="Structure\Field.cs" />
     <Compile Include="Structure\ILProcessorExtensions.cs" />
-    <Compile Include="Structure\StringInstruction.cs" />
+    <Compile Include="Structure\Instructions\NumberInstruction.cs" />
+    <Compile Include="Structure\Instructions\StringInstruction.cs" />
     <Compile Include="Structure\Method.cs" />
     <Compile Include="Structure\MethodGroup.cs" />
     <Compile Include="Structure\Namespace.cs" />
@@ -79,7 +80,7 @@
     <Compile Include="Structure\Project.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Structure\Property.cs" />
-    <Compile Include="Structure\StringHider.cs" />
+    <Compile Include="Structure\HiderClass.cs" />
     <Compile Include="Structure\Type.cs" />
     <Compile Include="SkipRules\SkipField.cs" />
     <Compile Include="SkipRules\SkipMethod.cs" />

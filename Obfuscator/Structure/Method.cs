@@ -1,5 +1,6 @@
 ﻿using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Obfuscator.Structure.Instrucitons;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,15 +12,15 @@ namespace Obfuscator.Structure
 		private MethodDefinition definition;
 		private Project project;
 		private Assembly assembly;
-	    private List<MethodReference> references = new List<MethodReference>();
+		private List<MethodReference> references = new List<MethodReference>();
 		private MethodGroup _group;
-        public static Random rand = new Random();
+		public static Random rand = new Random();
 
-        public string Changes { get; private set; }
+		public string Changes { get; private set; }
 
-	    public bool IsObfuscated { get; private set; }
+		public bool IsObfuscated { get; private set; }
 
-	    public MethodGroup Group
+		public MethodGroup Group
 		{
 			get
 			{
@@ -80,22 +81,22 @@ namespace Obfuscator.Structure
 			}
 
 
-            //obfuscate const
-		    var proc = method.Body.GetILProcessor();
-            proc.ChangeAllOpcodeToAnother(OpCodes.Beq_S, OpCodes.Beq);
-            proc.ChangeAllOpcodeToAnother(OpCodes.Bge_S, OpCodes.Bge);
-            proc.ChangeAllOpcodeToAnother(OpCodes.Bgt_S, OpCodes.Bgt);
-            proc.ChangeAllOpcodeToAnother(OpCodes.Bgt_Un_S, OpCodes.Bgt_Un);
-            proc.ChangeAllOpcodeToAnother(OpCodes.Ble_S, OpCodes.Ble);
-            proc.ChangeAllOpcodeToAnother(OpCodes.Ble_Un_S, OpCodes.Ble_Un);
-            proc.ChangeAllOpcodeToAnother(OpCodes.Blt_S, OpCodes.Blt);
-            proc.ChangeAllOpcodeToAnother(OpCodes.Blt_Un_S, OpCodes.Blt);
-            proc.ChangeAllOpcodeToAnother(OpCodes.Bne_Un_S, OpCodes.Bne_Un);
-            proc.ChangeAllOpcodeToAnother(OpCodes.Br_S, OpCodes.Br);
-            proc.ChangeAllOpcodeToAnother(OpCodes.Brfalse_S, OpCodes.Brfalse);
-            proc.ChangeAllOpcodeToAnother(OpCodes.Brtrue_S, OpCodes.Brtrue);
+			//obfuscate const
+			var proc = method.Body.GetILProcessor();
+			proc.ChangeAllOpcodeToAnother(OpCodes.Beq_S, OpCodes.Beq);
+			proc.ChangeAllOpcodeToAnother(OpCodes.Bge_S, OpCodes.Bge);
+			proc.ChangeAllOpcodeToAnother(OpCodes.Bgt_S, OpCodes.Bgt);
+			proc.ChangeAllOpcodeToAnother(OpCodes.Bgt_Un_S, OpCodes.Bgt_Un);
+			proc.ChangeAllOpcodeToAnother(OpCodes.Ble_S, OpCodes.Ble);
+			proc.ChangeAllOpcodeToAnother(OpCodes.Ble_Un_S, OpCodes.Ble_Un);
+			proc.ChangeAllOpcodeToAnother(OpCodes.Blt_S, OpCodes.Blt);
+			proc.ChangeAllOpcodeToAnother(OpCodes.Blt_Un_S, OpCodes.Blt);
+			proc.ChangeAllOpcodeToAnother(OpCodes.Bne_Un_S, OpCodes.Bne_Un);
+			proc.ChangeAllOpcodeToAnother(OpCodes.Br_S, OpCodes.Br);
+			proc.ChangeAllOpcodeToAnother(OpCodes.Brfalse_S, OpCodes.Brfalse);
+			proc.ChangeAllOpcodeToAnother(OpCodes.Brtrue_S, OpCodes.Brtrue);
 
-            foreach (var instruction in method.Body.Instructions)
+			foreach (var instruction in method.Body.Instructions)
 			{
 				project.RegistrateInstruction(instruction);
 			}
@@ -135,19 +136,19 @@ namespace Obfuscator.Structure
 				}
 				m.IsObfuscated = true;
 
-                if (!m.definition.IsConstructor && m.definition.HasBody)
-                {
-                    var newBody = GetSwitch(m.definition.Body.Instructions);
+				if (!m.definition.IsConstructor && m.definition.HasBody)
+				{
+					//var newBody = GetSwitch(m.definition.Body.Instructions);
 
-                    m.definition.Body.Instructions.Clear();
+					//m.definition.Body.Instructions.Clear();
 
-                    foreach (var ins in newBody)
-                    {
-                        m.definition.Body.Instructions.Add(ins);
-                    }
-                }
+					//foreach (var ins in newBody)
+					//{
+					//	m.definition.Body.Instructions.Add(ins);
+					//}
+				}
 
-                m.Changes += " -> " + name;
+				m.Changes += " -> " + name;
 			}
 			return true;
 		}
@@ -191,7 +192,7 @@ namespace Obfuscator.Structure
 				}
 			}
 		}
-	    public ICollection<Instruction> GetSwitch(IEnumerable<Instruction> instructions)
+		public ICollection<Instruction> GetSwitch(IEnumerable<Instruction> instructions)
 		{
 			var result = new List<Instruction>();
 
@@ -205,7 +206,7 @@ namespace Obfuscator.Structure
 			result.Add(Instruction.Create(OpCodes.Sub));
 
 			var labels = new Instruction[5];
-			for(int i = 0; i < labels.Length; i++)
+			for (int i = 0; i < labels.Length; i++)
 			{
 				labels[i] = Instruction.Create(OpCodes.Nop);
 			}
@@ -233,12 +234,65 @@ namespace Obfuscator.Structure
 			return result;
 		}
 
-	    public IEnumerable<StringInstruction> GetStringInstructions()
-	    {
-            if (!definition.HasBody) return new StringInstruction[0];
-            var proc =  definition.Body.GetILProcessor();
+		public IEnumerable<StringInstruction> GetStringInstructions()
+		{
+			if (!definition.HasBody) return new StringInstruction[0];
+			var proc = definition.Body.GetILProcessor();
 
-            return definition.Body.Instructions.Where(i => i.OpCode.Equals(OpCodes.Ldstr)).Select(i => StringInstruction.GetInstructionWrapper(i, proc)).ToList();
-	    }
-    }
+			return definition.Body.Instructions.Where(i => i.OpCode.Equals(OpCodes.Ldstr)).Select(i => StringInstruction.GetInstructionWrapper(i, proc)).ToList();
+		}
+
+		public IEnumerable<NumberInstruction<double>> GetDoubleInstructions()
+		{
+			if (!definition.HasBody) return new NumberInstruction<double>[0];
+			var proc = definition.Body.GetILProcessor();
+
+			return definition.Body.Instructions.Where(i => i.OpCode.Equals(OpCodes.Ldc_R8)).Select(i => NumberInstruction<double>.GetInstructionWrapper(i, proc)).ToList();
+		}
+
+		public IEnumerable<NumberInstruction<float>> GetFloatInstructions()
+		{
+			if (!definition.HasBody) return new NumberInstruction<float>[0];
+			var proc = definition.Body.GetILProcessor();
+
+			return definition.Body.Instructions.Where(i => i.OpCode.Equals(OpCodes.Ldc_R4)).Select(i => NumberInstruction<float>.GetInstructionWrapper(i, proc)).ToList();
+		}
+
+		public IEnumerable<NumberInstruction<int>> GetIntInstructions()
+		{
+			if (!definition.HasBody) return new NumberInstruction<int>[0];
+			var proc = definition.Body.GetILProcessor();
+
+			return definition.Body.Instructions.Where(i => i.OpCode.Equals(OpCodes.Ldc_I4)).Select(i => NumberInstruction<int>.GetInstructionWrapper(i, proc)).ToList();
+		}
+
+		public IEnumerable<NumberInstruction<long>> GetLongInstructions()
+		{
+			if (!definition.HasBody) return new NumberInstruction<long>[0];
+			var proc = definition.Body.GetILProcessor();
+
+			return definition.Body.Instructions.Where(i => i.OpCode.Equals(OpCodes.Ldc_I8)).Select(i => NumberInstruction<long>.GetInstructionWrapper(i, proc)).ToList();
+		}
+
+		public IEnumerable<NumberInstruction<sbyte>> GetShortInstructions()
+		{
+			if (!definition.HasBody) return new NumberInstruction<sbyte>[0];
+			var proc = definition.Body.GetILProcessor();
+			var opcodes = new[]
+			{
+				OpCodes.Ldc_I4_S,
+				OpCodes.Ldc_I4_8,
+				OpCodes.Ldc_I4_7,
+				OpCodes.Ldc_I4_4,
+				OpCodes.Ldc_I4_3,
+				OpCodes.Ldc_I4_2,
+				OpCodes.Ldc_I4_1,
+				OpCodes.Ldc_I4_0,
+				OpCodes.Ldc_I4_M1,
+			};
+
+			return definition.Body.Instructions.Where(i => opcodes.Any(o => o.Equals(i.OpCode))).Select(i => NumberInstruction<sbyte>.GetInstructionWrapper(i, proc)).ToList();
+		}
+
+	}
 }

@@ -175,7 +175,7 @@ namespace Obfuscator.Structure
 	    {
             foreach (var assembly in Assemblies)
             {
-                assembly.HideStrings();
+                assembly.HideConstants();
             }
         }
 	}

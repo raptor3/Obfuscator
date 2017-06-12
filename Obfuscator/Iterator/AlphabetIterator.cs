@@ -17,5 +17,22 @@
 			current++;
 			return result;
 		}
+
+		//private static string defaultValue = "\n\r";
+
+		//private StringBuilder current = new StringBuilder(defaultValue);
+
+		//public void Reset()
+		//{
+		//	current.Clear();
+		//	current.Append(defaultValue);
+		//}
+
+		//public string Next()
+		//{
+		//	string result = current.ToString();
+		//	current.Append(defaultValue);
+		//	return result;
+		//}
 	}
 }

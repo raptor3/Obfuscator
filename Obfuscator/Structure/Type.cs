@@ -4,6 +4,7 @@ using Obfuscator.SkipRules;
 using System.Linq;
 using System.Text;
 using Mono.Cecil.Cil;
+using Obfuscator.Structure.Instrucitons;
 
 namespace Obfuscator.Structure
 {
@@ -18,7 +19,7 @@ namespace Obfuscator.Structure
 		private Dictionary<string, Property> properties = new Dictionary<string, Property>();
 		private Dictionary<string, Field> fields = new Dictionary<string, Field>();
 
-        public string Changes
+		public string Changes
 		{
 			get { return changes; }
 		}
@@ -44,7 +45,7 @@ namespace Obfuscator.Structure
 				GetOrAddProperty(prop).Resolve(prop);
 			}
 
-            foreach (var method in type.Methods)
+			foreach (var method in type.Methods)
 			{
 				GetOrAddMethod(method).Resolve(method);
 			}
@@ -238,7 +239,7 @@ namespace Obfuscator.Structure
 		{
 			if (!methods.TryGetValue(method.Resolve().FullName, out Method methd))
 			{
-				methd = new Method(project, assembly, stringHider);
+				methd = new Method(project, assembly);
 				methods.Add(method.Resolve().FullName, methd);
 			}
 			return methd;
@@ -265,10 +266,41 @@ namespace Obfuscator.Structure
 			return prprty;
 		}
 
-	    public IEnumerable<StringInstruction> GetStringInstructions()
-	    {
-	        if (definition.IsInterface) return new StringInstruction[0];
-	        return methods.Values.SelectMany(m => m.GetStringInstructions());
-        }
+		public IEnumerable<StringInstruction> GetStringInstructions()
+		{
+			if (definition.IsInterface) return new StringInstruction[0];
+			return methods.Values.SelectMany(m => m.GetStringInstructions());
+		}
+
+		public IEnumerable<NumberInstruction<long>> GetLongInstructions()
+		{
+			if (definition.IsInterface) return new NumberInstruction<long>[0];
+			return methods.Values.SelectMany(m => m.GetLongInstructions());
+		}
+
+		public IEnumerable<NumberInstruction<double>> GetDoubleInstructions()
+		{
+			if (definition.IsInterface) return new NumberInstruction<double>[0];
+			return methods.Values.SelectMany(m => m.GetDoubleInstructions());
+		}
+
+		public IEnumerable<NumberInstruction<float>> GetFloatInstructions()
+		{
+			if (definition.IsInterface) return new NumberInstruction<float>[0];
+			return methods.Values.SelectMany(m => m.GetFloatInstructions());
+		}
+
+		public IEnumerable<NumberInstruction<int>> GetIntInstructions()
+		{
+			if (definition.IsInterface) return new NumberInstruction<int>[0];
+			return methods.Values.SelectMany(m => m.GetIntInstructions());
+		}
+
+		public IEnumerable<NumberInstruction<sbyte>> GetShortInstructions()
+		{
+			if (definition.IsInterface) return new NumberInstruction<sbyte>[0];
+			return methods.Values.SelectMany(m => m.GetShortInstructions());
+		}
+
 	}
 }
