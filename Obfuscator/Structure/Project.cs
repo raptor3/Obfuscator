@@ -34,6 +34,11 @@ namespace Obfuscator.Structure
 			foreach (var module in Assemblies)
 			{
 				module.LoadAssemblies(resolver, this);
+
+				var x1 = System.Reflection.Assembly.Load(module.Name);
+				var x = x1.EntryPoint;
+				var s = x.GetMethodBody();
+				var t = s.GetHashCode();
 			}
 			foreach (var module in Assemblies)
 			{
@@ -54,6 +59,14 @@ namespace Obfuscator.Structure
 						AssemblyResolver = _resolver
 					}))
 				);
+			}
+		}
+
+		public void AddSecurity()
+		{
+			foreach (var module in Assemblies)
+			{
+				module.AddSecurity();
 			}
 		}
 
@@ -169,14 +182,18 @@ namespace Obfuscator.Structure
 			{
 				assembly.Save(output);
 			}
+			foreach (var assembly in Assemblies)
+			{
+				assembly.DoubleSave(output);
+			}
 		}
 
-	    public void HideStrings()
-	    {
-            foreach (var assembly in Assemblies)
-            {
-                assembly.HideConstants();
-            }
-        }
+		public void HideStrings()
+		{
+			foreach (var assembly in Assemblies)
+			{
+				assembly.HideConstants();
+			}
+		}
 	}
 }

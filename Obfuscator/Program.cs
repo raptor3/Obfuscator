@@ -50,10 +50,11 @@ namespace Obfuscator
 				project.NameIteratorFabric = new AlphabetIteratorFabric();
 				project.Load(new DefaultAssemblyResolver());
 				project.Resolve();
-			    project.HideStrings();
+				project.HideStrings();
 				Console.WriteLine();
 				var result = project.RunRules();
 				Console.WriteLine(result);
+				project.AddSecurity();
 
 				Directory.CreateDirectory(args[1]);
 				project.SaveAssemblies(args[1]);
@@ -63,7 +64,6 @@ namespace Obfuscator
 			finally
 			{
 				Console.WriteLine();
-
 			}
 			return 0;
 		}

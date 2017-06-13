@@ -3,6 +3,7 @@ using Obfuscator.Structure.Instrucitons;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System;
 
 namespace Obfuscator.Structure
 {
@@ -160,6 +161,14 @@ namespace Obfuscator.Structure
 		public IEnumerable<NumberInstruction<sbyte>> GetShortInstructions()
 		{
 			return types.Values.SelectMany(t => t.GetShortInstructions());
+		}
+
+		public void AddSecurity()
+		{
+			foreach (var type in types.Values)
+			{
+				type.AddSecurity();
+			}
 		}
 	}
 

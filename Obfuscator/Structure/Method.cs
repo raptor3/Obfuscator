@@ -3,7 +3,10 @@ using Mono.Cecil.Cil;
 using Obfuscator.Structure.Instrucitons;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Text;
 
 namespace Obfuscator.Structure
 {
@@ -19,6 +22,7 @@ namespace Obfuscator.Structure
 		public string Changes { get; private set; }
 
 		public bool IsObfuscated { get; private set; }
+		public bool IsSecured { get; private set; }
 
 		public MethodGroup Group
 		{
@@ -68,6 +72,7 @@ namespace Obfuscator.Structure
 					project.RegistrateReference(constraint);
 				}
 			}
+
 		}
 
 		public void Resolve(MethodDefinition method)
@@ -75,11 +80,15 @@ namespace Obfuscator.Structure
 			definition = method;
 			RegisterReference(method);
 
+			foreach (var attr in method.CustomAttributes)
+			{
+				project.RegistrateReference(attr.AttributeType);
+			}
+
 			if (!method.HasBody)
 			{
 				return;
 			}
-
 
 			//obfuscate const
 			var proc = method.Body.GetILProcessor();
@@ -138,14 +147,14 @@ namespace Obfuscator.Structure
 
 				if (!m.definition.IsConstructor && m.definition.HasBody)
 				{
-					//var newBody = GetSwitch(m.definition.Body.Instructions);
+					var newBody = GetSwitch(m.definition.Body.Instructions);
 
-					//m.definition.Body.Instructions.Clear();
+					m.definition.Body.Instructions.Clear();
 
-					//foreach (var ins in newBody)
-					//{
-					//	m.definition.Body.Instructions.Add(ins);
-					//}
+					foreach (var ins in newBody)
+					{
+						m.definition.Body.Instructions.Add(ins);
+					}
 				}
 
 				m.Changes += " -> " + name;
@@ -200,8 +209,10 @@ namespace Obfuscator.Structure
 			var offset = switchEl - rand.Next(5);
 			var endOfswitch = Instruction.Create(OpCodes.Nop);
 			var defaultSwitch = Instruction.Create(OpCodes.Nop);
-
-			result.Add(Instruction.Create(OpCodes.Ldc_I4, switchEl));
+			//result.Add(Instruction.Create(OpCodes.Ldc_I4, (switchEl)));
+			result.Add(Instruction.Create(OpCodes.Ldc_I4, HiderClass.ReverseInt(switchEl)));
+			
+			result.Add(Instruction.Create(OpCodes.Call, assembly.Hider.BaseGetInt));
 			result.Add(Instruction.Create(OpCodes.Ldc_I4, offset));
 			result.Add(Instruction.Create(OpCodes.Sub));
 
@@ -244,7 +255,7 @@ namespace Obfuscator.Structure
 
 		public IEnumerable<NumberInstruction<double>> GetDoubleInstructions()
 		{
-			if (!definition.HasBody) return new NumberInstruction<double>[0];
+			if (!definition.HasBody || !WillChanged()) return new NumberInstruction<double>[0];
 			var proc = definition.Body.GetILProcessor();
 
 			return definition.Body.Instructions.Where(i => i.OpCode.Equals(OpCodes.Ldc_R8)).Select(i => NumberInstruction<double>.GetInstructionWrapper(i, proc)).ToList();
@@ -252,7 +263,7 @@ namespace Obfuscator.Structure
 
 		public IEnumerable<NumberInstruction<float>> GetFloatInstructions()
 		{
-			if (!definition.HasBody) return new NumberInstruction<float>[0];
+			if (!definition.HasBody || !WillChanged()) return new NumberInstruction<float>[0];
 			var proc = definition.Body.GetILProcessor();
 
 			return definition.Body.Instructions.Where(i => i.OpCode.Equals(OpCodes.Ldc_R4)).Select(i => NumberInstruction<float>.GetInstructionWrapper(i, proc)).ToList();
@@ -260,7 +271,7 @@ namespace Obfuscator.Structure
 
 		public IEnumerable<NumberInstruction<int>> GetIntInstructions()
 		{
-			if (!definition.HasBody) return new NumberInstruction<int>[0];
+			if (!definition.HasBody || !WillChanged()) return new NumberInstruction<int>[0];
 			var proc = definition.Body.GetILProcessor();
 
 			return definition.Body.Instructions.Where(i => i.OpCode.Equals(OpCodes.Ldc_I4)).Select(i => NumberInstruction<int>.GetInstructionWrapper(i, proc)).ToList();
@@ -268,7 +279,7 @@ namespace Obfuscator.Structure
 
 		public IEnumerable<NumberInstruction<long>> GetLongInstructions()
 		{
-			if (!definition.HasBody) return new NumberInstruction<long>[0];
+			if (!definition.HasBody || !WillChanged()) return new NumberInstruction<long>[0];
 			var proc = definition.Body.GetILProcessor();
 
 			return definition.Body.Instructions.Where(i => i.OpCode.Equals(OpCodes.Ldc_I8)).Select(i => NumberInstruction<long>.GetInstructionWrapper(i, proc)).ToList();
@@ -276,7 +287,7 @@ namespace Obfuscator.Structure
 
 		public IEnumerable<NumberInstruction<sbyte>> GetShortInstructions()
 		{
-			if (!definition.HasBody) return new NumberInstruction<sbyte>[0];
+			if (!definition.HasBody || !WillChanged()) return new NumberInstruction<sbyte>[0];
 			var proc = definition.Body.GetILProcessor();
 			var opcodes = new[]
 			{
@@ -294,5 +305,78 @@ namespace Obfuscator.Structure
 			return definition.Body.Instructions.Where(i => opcodes.Any(o => o.Equals(i.OpCode))).Select(i => NumberInstruction<sbyte>.GetInstructionWrapper(i, proc)).ToList();
 		}
 
+		public int AddEntryPointSecurity()
+		{
+
+			IsSecured = true;
+
+			return 0;
+		}
+
+		public void AddSecurity()
+		{
+			if (IsSecured) return;
+
+			var assType = typeof(System.Reflection.Assembly);
+			
+			if (false && definition.HasBody)
+			{
+				var encodingType = typeof(Encoding);
+				var getUtf8 = assembly.Import(encodingType.GetMethod("get_UTF8"));
+				var getString = assembly.Import(encodingType.GetMethod("GetString", new[] { typeof(byte[]), typeof(int), typeof(int) }));
+
+				var body = definition.Body;
+				body.InitLocals = true;
+				var arrayVar = new VariableDefinition(assembly.Import(typeof(byte[])));
+				var flagVar = new VariableDefinition(assembly.TypeSystem.Boolean);
+
+				body.Variables.Add(arrayVar);
+				body.Variables.Add(flagVar);
+
+				var firstInstr = body.Instructions.First();
+				var proc = body.GetILProcessor();
+
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Nop));
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Call, assembly.Import(assType.GetMethod("GetExecutingAssembly"))));
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Callvirt, assembly.Import(assType.GetProperty("EntryPoint").GetGetMethod())));
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Callvirt, assembly.Import(typeof(MethodInfo).GetMethod("GetMethodBody"))));
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Callvirt, assembly.Import(typeof(System.Reflection.MethodBody).GetMethod("GetILAsByteArray"))));
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Stloc_S, arrayVar));
+
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Call, getUtf8));
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Ldloc_S, arrayVar));
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Ldc_I4_0));
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Ldloc_S, arrayVar));
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Ldlen));
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Conv_I4));
+
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Callvirt, getString));
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Callvirt, assembly.Import(typeof(object).GetMethod("GetHashCode"))));
+				var entryHash = Instruction.Create(OpCodes.Ldc_I4, assembly.EntryHashCode);
+				proc.InsertBefore(firstInstr, entryHash);
+				assembly.EntryHash.Add(entryHash);
+				//proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Ldc_I4, HiderClass.ReverseInt(assembly.EntryHashCode)));
+				//proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Call, assembly.Hider.BaseGetInt));
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Ceq));
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Ldc_I4_0));
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Ceq));
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Stloc_S, flagVar));
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Ldloc_S, flagVar));
+				var ret = Instruction.Create(OpCodes.Ret);
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Brfalse, ret));
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Nop));
+				var stringInstruction = Instruction.Create(OpCodes.Ldstr, "Code was changed.");
+				proc.InsertBefore(firstInstr, stringInstruction);
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Newobj, assembly.Import(typeof(Exception).GetConstructor(new[] { typeof(string)}))));
+				proc.InsertBefore(firstInstr, Instruction.Create(OpCodes.Throw));
+				proc.InsertBefore(firstInstr, ret);
+
+				//assembly.Hider.HideString(StringInstruction.GetInstructionWrapper(stringInstruction, proc));
+			}
+
+			IsSecured = true;
+		}
+
 	}
+
 }

@@ -6,6 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
 using System.Reflection;
+using System;
+using Mono.Cecil.Cil;
 
 namespace Obfuscator.Structure
 {
@@ -14,20 +16,27 @@ namespace Obfuscator.Structure
 		private Project project;
 		private AssemblyDefinition assembly;
 		private Dictionary<string, Namespace> namespaces = new Dictionary<string, Namespace>();
-
+		[XmlIgnore]
+		public HiderClass Hider { get; private set; }
+		[XmlIgnore]
+		public int EntryHashCode { get; private set; }
+		private Method EntryPoint { get; set; }
 		public string Name { get { return assembly?.FullName; } }
-
+		[XmlIgnore]
+		public List<Instruction> EntryHash { get; private set; }
 		[XmlAttribute("file")]
 		public string File { get; set; }
 
 		public Assembly()
 		{
+			EntryHash = new List<Instruction>();
 		}
 
 		public Assembly(Project project, AssemblyDefinition assembly)
 		{
 			this.project = project;
 			this.assembly = assembly;
+			EntryHash = new List<Instruction>();
 		}
 
 		public TypeSystem TypeSystem
@@ -116,6 +125,11 @@ namespace Obfuscator.Structure
 
 				nmspace.Resolve(type);
 			}
+
+			if (assembly.EntryPoint != null)
+			{
+				EntryPoint = GetMethod(assembly.EntryPoint);
+			}
 		}
 
 		public bool HasType(TypeReference typeRef)
@@ -130,6 +144,18 @@ namespace Obfuscator.Structure
 
 		public void Save(string output)
 		{
+			Hider?.FinalizeHiderClass();
+			assembly?.Write(Path.Combine(output, Path.GetFileName(File)));
+		}
+
+		public void DoubleSave(string output)
+		{
+			var s = System.Reflection.Assembly.Load(Path.GetFullPath(Path.Combine(output, Path.GetFileName(File)))).EntryPoint.GetMethodBody().GetILAsByteArray();
+			var hash = System.Text.Encoding.UTF8.GetString(s, 0, s.Length).GetHashCode();
+			foreach (var entryHash in EntryHash)
+			{
+				entryHash.Operand = hash;
+			}
 			assembly?.Write(Path.Combine(output, Path.GetFileName(File)));
 		}
 
@@ -241,15 +267,24 @@ namespace Obfuscator.Structure
 			var floatInstructions = namespaces.Values.SelectMany(n => n.GetFloatInstructions()).ToList();
 			var intInstructions = namespaces.Values.SelectMany(n => n.GetIntInstructions()).ToList();
 			var shortInstructions = namespaces.Values.SelectMany(n => n.GetShortInstructions()).ToList();
-			var hiderClass = new HiderClass(project, this);
-			hiderClass.CreateHiderClass();
-			hiderClass.HideStrings(stringInstructions);
-			hiderClass.HideDoubles(doubleInstructions);
-			hiderClass.HideLongs(longInstructions);
-			hiderClass.HideFloats(floatInstructions);
-			hiderClass.HideInts(intInstructions);
-			hiderClass.HideBytes(shortInstructions);
-			hiderClass.FinalizeHiderClass();
+			Hider = new HiderClass(project, this);
+			Hider.CreateHiderClass();
+			Hider.HideStrings(stringInstructions);
+			Hider.HideDoubles(doubleInstructions);
+			Hider.HideLongs(longInstructions);
+			Hider.HideFloats(floatInstructions);
+			Hider.HideInts(intInstructions);
+			Hider.HideBytes(shortInstructions);
+			//Hider.FinalizeHiderClass();
+		}
+
+		public void AddSecurity()
+		{
+			EntryHashCode = EntryPoint.AddEntryPointSecurity();
+			foreach (var nms in namespaces.Values)
+			{
+				nms.AddSecurity();
+			}
 		}
 
 		public void AddType(TypeDefinition typeDefinition)

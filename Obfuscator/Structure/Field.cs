@@ -30,6 +30,11 @@ namespace Obfuscator.Structure
 		{
 			definition = fieldDef;
 			references.Add(fieldDef);
+
+			foreach (var attr in fieldDef.CustomAttributes)
+			{
+				project.RegistrateReference(attr.AttributeType);
+			}
 		}
 
 		public bool ChangeName(string name)

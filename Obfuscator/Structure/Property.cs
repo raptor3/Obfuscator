@@ -51,6 +51,11 @@ namespace Obfuscator.Structure
 		{
 			references.Add(prop);
 			definition = prop;
+
+			foreach (var attr in prop.CustomAttributes)
+			{
+				project.RegistrateReference(attr.AttributeType);
+			}
 		}
 	}
 }

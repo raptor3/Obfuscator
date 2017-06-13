@@ -1,10 +1,9 @@
 ﻿using Mono.Cecil;
 using System.Collections.Generic;
-using Obfuscator.SkipRules;
 using System.Linq;
 using System.Text;
-using Mono.Cecil.Cil;
 using Obfuscator.Structure.Instrucitons;
+using System;
 
 namespace Obfuscator.Structure
 {
@@ -58,8 +57,10 @@ namespace Obfuscator.Structure
 			{
 				project.RegistrateReference(interf);
 			}
-
-
+			foreach (var attr in type.CustomAttributes)
+			{
+				project.RegistrateReference(attr.AttributeType);
+			}
 		}
 
 		public void RegisterReference(TypeReference typeRef)
@@ -199,6 +200,14 @@ namespace Obfuscator.Structure
 			result.AppendLine(skippedMethods.ToString());
 			result.AppendLine(renamedMethods.ToString());
 			return result.ToString();
+		}
+
+		public void AddSecurity()
+		{
+			foreach (var method in methods.Values)
+			{
+				method.AddSecurity();
+			}
 		}
 
 		public bool ChangeName(string name)

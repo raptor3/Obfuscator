@@ -69,7 +69,7 @@
     <Compile Include="SkipRules\ISkipNamespace.cs" />
     <Compile Include="SkipRules\ISkipProperty.cs" />
     <Compile Include="Structure\Field.cs" />
-    <Compile Include="Structure\ILProcessorExtensions.cs" />
+    <Compile Include="Structure\Instructions\ILProcessorExtensions.cs" />
     <Compile Include="Structure\Instructions\NumberInstruction.cs" />
     <Compile Include="Structure\Instructions\StringInstruction.cs" />
     <Compile Include="Structure\Method.cs" />

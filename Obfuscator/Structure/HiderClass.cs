@@ -29,7 +29,7 @@ namespace Obfuscator.Structure
 		private MethodDefinition baseGetDouble;
 		private MethodDefinition baseGetLong;
 		private MethodDefinition baseGetFloat;
-		private MethodDefinition baseGetInt;
+		public MethodDefinition BaseGetInt { get; private set; }
 		private MethodDefinition baseGetByte;
 		private MethodDefinition baseReverseLong;
 		private MethodDefinition baseReverseInt;
@@ -47,7 +47,7 @@ namespace Obfuscator.Structure
 			stringIndex = 0;
 			hiderType = new TypeDefinition(
 				iterator.Next(),
-				iterator.Next(),
+				"\t",
 				TypeAttributes.BeforeFieldInit | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit,
 				assembly.TypeSystem.Object
 			);
@@ -87,8 +87,6 @@ namespace Obfuscator.Structure
 				assembly.Import(typeof(Dictionary<byte, byte>))
 			);
 
-			hiderType.Fields.Add(dataField);
-			hiderType.Fields.Add(stringArrayField);
 			hiderType.Fields.Add(doubleDictField);
 			hiderType.Fields.Add(longDictField);
 			hiderType.Fields.Add(floatDictField);
@@ -101,17 +99,16 @@ namespace Obfuscator.Structure
 			baseGetLong = CreateGetLongMethod();
 			baseReverseInt = CreateReverseIntMethod();
 			baseGetFloat = CreateGetFloatMethod();
-			baseGetInt = CreateGetIntMethod();
+			BaseGetInt = CreateGetIntMethod();
 			baseReverseByte = CreateReverseByteMethod();
 			baseGetByte = CreateGetByteMethod();
 
-			hiderType.Methods.Add(baseStringMethod);
 			hiderType.Methods.Add(baseReverseLong);
 			hiderType.Methods.Add(baseGetDouble);
 			hiderType.Methods.Add(baseGetLong);
 			hiderType.Methods.Add(baseReverseInt);
 			hiderType.Methods.Add(baseGetFloat);
-			hiderType.Methods.Add(baseGetInt);
+			hiderType.Methods.Add(BaseGetInt);
 			hiderType.Methods.Add(baseReverseByte);
 			hiderType.Methods.Add(baseGetByte);
 		}
@@ -423,8 +420,6 @@ namespace Obfuscator.Structure
 
 		private MethodDefinition CreateGetDoubleMethod()
 		{
-			var systemIntTypeReference = assembly.TypeSystem.Int32;
-
 			var result = new MethodDefinition(
 				iterator.Next(),
 				MethodAttributes.Static | MethodAttributes.Public | MethodAttributes.HideBySig,
@@ -478,8 +473,6 @@ namespace Obfuscator.Structure
 
 		private MethodDefinition CreateGetLongMethod()
 		{
-			var systemIntTypeReference = assembly.TypeSystem.Int32;
-
 			var result = new MethodDefinition(
 				iterator.Next(),
 				MethodAttributes.Static | MethodAttributes.Public | MethodAttributes.HideBySig,
@@ -531,8 +524,6 @@ namespace Obfuscator.Structure
 
 		private MethodDefinition CreateGetFloatMethod()
 		{
-			var systemIntTypeReference = assembly.TypeSystem.Int32;
-
 			var result = new MethodDefinition(
 				iterator.Next(),
 				MethodAttributes.Static | MethodAttributes.Public | MethodAttributes.HideBySig,
@@ -590,8 +581,6 @@ namespace Obfuscator.Structure
 
 		private MethodDefinition CreateGetIntMethod()
 		{
-			var systemIntTypeReference = assembly.TypeSystem.Int32;
-
 			var result = new MethodDefinition(
 				iterator.Next(),
 				MethodAttributes.Static | MethodAttributes.Public | MethodAttributes.HideBySig,
@@ -643,8 +632,6 @@ namespace Obfuscator.Structure
 
 		private MethodDefinition CreateGetByteMethod()
 		{
-			var systemIntTypeReference = assembly.TypeSystem.Int32;
-
 			var result = new MethodDefinition(
 				iterator.Next(),
 				MethodAttributes.Static | MethodAttributes.Public | MethodAttributes.HideBySig,
@@ -696,31 +683,6 @@ namespace Obfuscator.Structure
 
 		public void FinalizeHiderClass()
 		{
-			var structType = new TypeDefinition(
-				iterator.Next(),
-				"",
-				TypeAttributes.ExplicitLayout | TypeAttributes.AnsiClass | TypeAttributes.Sealed | TypeAttributes.NestedPrivate,
-				assembly.Import(typeof(ValueType)))
-			{
-				PackingSize = 1
-			};
-
-			var dataConstantField = new FieldDefinition(
-				iterator.Next(),
-				FieldAttributes.HasFieldRVA | FieldAttributes.Private | FieldAttributes.Static | FieldAttributes.Assembly,
-				structType
-			);
-			hiderType.NestedTypes.Add(structType);
-			hiderType.Fields.Add(dataConstantField);
-			structType.ClassSize = _dataBytes.Count;
-
-			for (var i = 0; i < _dataBytes.Count; i++)
-			{
-				_dataBytes[i] = (byte)(_dataBytes[i] ^ (byte)i ^ 0xAA);
-			}
-			dataConstantField.InitialValue = _dataBytes.ToArray();
-
-			var initializeArrayRef = assembly.Import(typeof(RuntimeHelpers).GetMethod("InitializeArray"));
 			var staticConstructor = new MethodDefinition(
 				".cctor",
 				MethodAttributes.Static | MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
@@ -730,7 +692,6 @@ namespace Obfuscator.Structure
 			staticConstructor.Body = new MethodBody(staticConstructor);
 			staticConstructor.Body.Variables.Add(new VariableDefinition(assembly.TypeSystem.Int32));
 
-			#region CIL of static constructor
 			var processor = staticConstructor.Body.GetILProcessor();
 			processor.Emit(OpCodes.Newobj, assembly.Import(typeof(Dictionary<double, double>).GetConstructor(new System.Type[0])));
 			processor.Emit(OpCodes.Stsfld, doubleDictField);
@@ -742,73 +703,108 @@ namespace Obfuscator.Structure
 			processor.Emit(OpCodes.Stsfld, intDictField);
 			processor.Emit(OpCodes.Newobj, assembly.Import(typeof(Dictionary<byte, byte>).GetConstructor(new System.Type[0])));
 			processor.Emit(OpCodes.Stsfld, byteDictField);
-			processor.Emit(OpCodes.Ldc_I4, stringIndex);
-			processor.Emit(OpCodes.Newarr, assembly.TypeSystem.String);
-			processor.Emit(OpCodes.Stsfld, stringArrayField);
-			processor.Emit(OpCodes.Ldc_I4, _dataBytes.Count);
-			processor.Emit(OpCodes.Newarr, assembly.TypeSystem.Byte);
-			processor.Emit(OpCodes.Dup);
-			processor.Emit(OpCodes.Ldtoken, dataConstantField);
-			processor.Emit(OpCodes.Call, initializeArrayRef);
-			processor.Emit(OpCodes.Stsfld, dataField);
-			processor.Emit(OpCodes.Ldc_I4_0);
-			processor.Emit(OpCodes.Stloc_0);
-			var backlabel1 = processor.Create(OpCodes.Br_S, staticConstructor.Body.Instructions[0]);
-			processor.Append(backlabel1);
-			var label2 = processor.Create(OpCodes.Ldsfld, dataField);
-			processor.Append(label2);
-			processor.Emit(OpCodes.Ldloc_0);
-			processor.Emit(OpCodes.Ldsfld, dataField);
-			processor.Emit(OpCodes.Ldloc_0);
-			processor.Emit(OpCodes.Ldelem_U1);
-			processor.Emit(OpCodes.Ldloc_0);
-			processor.Emit(OpCodes.Xor);
-			processor.Emit(OpCodes.Ldc_I4, 0xAA);
-			processor.Emit(OpCodes.Xor);
-			processor.Emit(OpCodes.Conv_U1);
-			processor.Emit(OpCodes.Stelem_I1);
-			processor.Emit(OpCodes.Ldloc_0);
-			processor.Emit(OpCodes.Ldc_I4_1);
-			processor.Emit(OpCodes.Add);
-			processor.Emit(OpCodes.Stloc_0);
-			backlabel1.Operand = processor.Create(OpCodes.Ldloc_0);
-			processor.Append((Instruction)backlabel1.Operand);
-			processor.Emit(OpCodes.Ldsfld, dataField);
-			processor.Emit(OpCodes.Ldlen);
-			processor.Emit(OpCodes.Conv_I4);
-			processor.Emit(OpCodes.Clt);
-			processor.Emit(OpCodes.Brtrue, label2);
-			processor.Emit(OpCodes.Ret);
-			#endregion
 
+			if (_dataBytes.Count != 0)
+			{
+				hiderType.Fields.Add(dataField);
+				hiderType.Fields.Add(stringArrayField);
+				hiderType.Methods.Add(baseStringMethod);
+
+				var structType = new TypeDefinition(
+				iterator.Next(),
+				"",
+				TypeAttributes.ExplicitLayout | TypeAttributes.AnsiClass | TypeAttributes.Sealed | TypeAttributes.NestedPrivate,
+				assembly.Import(typeof(ValueType)))
+				{
+					PackingSize = 1
+				};
+
+				var dataConstantField = new FieldDefinition(
+					iterator.Next(),
+					FieldAttributes.HasFieldRVA | FieldAttributes.Private | FieldAttributes.Static | FieldAttributes.Assembly,
+					structType
+				);
+				hiderType.NestedTypes.Add(structType);
+				hiderType.Fields.Add(dataConstantField);
+				structType.ClassSize = _dataBytes.Count;
+
+				for (var i = 0; i < _dataBytes.Count; i++)
+				{
+					_dataBytes[i] = (byte)(_dataBytes[i] ^ (byte)i ^ 0xAA);
+				}
+				dataConstantField.InitialValue = _dataBytes.ToArray();
+
+				var initializeArrayRef = assembly.Import(typeof(RuntimeHelpers).GetMethod("InitializeArray"));
+
+				processor.Emit(OpCodes.Ldc_I4, stringIndex);
+				processor.Emit(OpCodes.Newarr, assembly.TypeSystem.String);
+				processor.Emit(OpCodes.Stsfld, stringArrayField);
+				processor.Emit(OpCodes.Ldc_I4, _dataBytes.Count);
+				processor.Emit(OpCodes.Newarr, assembly.TypeSystem.Byte);
+				processor.Emit(OpCodes.Dup);
+				processor.Emit(OpCodes.Ldtoken, dataConstantField);
+				processor.Emit(OpCodes.Call, initializeArrayRef);
+				processor.Emit(OpCodes.Stsfld, dataField);
+				processor.Emit(OpCodes.Ldc_I4_0);
+				processor.Emit(OpCodes.Stloc_0);
+				var backlabel1 = processor.Create(OpCodes.Br_S, staticConstructor.Body.Instructions[0]);
+				processor.Append(backlabel1);
+				var label2 = processor.Create(OpCodes.Ldsfld, dataField);
+				processor.Append(label2);
+				processor.Emit(OpCodes.Ldloc_0);
+				processor.Emit(OpCodes.Ldsfld, dataField);
+				processor.Emit(OpCodes.Ldloc_0);
+				processor.Emit(OpCodes.Ldelem_U1);
+				processor.Emit(OpCodes.Ldloc_0);
+				processor.Emit(OpCodes.Xor);
+				processor.Emit(OpCodes.Ldc_I4, 0xAA);
+				processor.Emit(OpCodes.Xor);
+				processor.Emit(OpCodes.Conv_U1);
+				processor.Emit(OpCodes.Stelem_I1);
+				processor.Emit(OpCodes.Ldloc_0);
+				processor.Emit(OpCodes.Ldc_I4_1);
+				processor.Emit(OpCodes.Add);
+				processor.Emit(OpCodes.Stloc_0);
+				backlabel1.Operand = processor.Create(OpCodes.Ldloc_0);
+				processor.Append((Instruction)backlabel1.Operand);
+				processor.Emit(OpCodes.Ldsfld, dataField);
+				processor.Emit(OpCodes.Ldlen);
+				processor.Emit(OpCodes.Conv_I4);
+				processor.Emit(OpCodes.Clt);
+				processor.Emit(OpCodes.Brtrue, label2);
+			}
+
+			processor.Emit(OpCodes.Ret);
 			assembly.AddType(hiderType);
 		}
 
 		public void HideStrings(IEnumerable<StringInstruction> stringInstructions)
 		{
-			var nameInterator = "";
-			var stringIndex = 0;
 			foreach (var instruction in stringInstructions)
 			{
-				if (!_methodByString.TryGetValue(instruction.String, out MethodDefinition individualStringMethodDefinition))
-				{
-					var methodName = iterator.Next();
-
-					var start = _dataBytes.Count;
-					_dataBytes.AddRange(Encoding.UTF8.GetBytes(instruction.String));
-					var count = _dataBytes.Count - start;
-
-					individualStringMethodDefinition = CreateIndividualStringMethod(methodName, stringIndex, start, count);
-					hiderType.Methods.Add(individualStringMethodDefinition);
-					_methodByString.Add(instruction.String, individualStringMethodDefinition);
-
-					stringIndex++;
-				}
-
-				var newinstruction = Instruction.Create(OpCodes.Call, individualStringMethodDefinition);
-				instruction.ReplaceStringWithInstruction(newinstruction);
+				HideString(instruction);
 			}
-			this.stringIndex = stringIndex;
+		}
+
+		public void HideString(StringInstruction instruction)
+		{
+			if (!_methodByString.TryGetValue(instruction.String, out MethodDefinition individualStringMethodDefinition))
+			{
+				var methodName = iterator.Next();
+
+				var start = _dataBytes.Count;
+				_dataBytes.AddRange(Encoding.UTF8.GetBytes(instruction.String));
+				var count = _dataBytes.Count - start;
+
+				individualStringMethodDefinition = CreateIndividualStringMethod(methodName, stringIndex, start, count);
+				hiderType.Methods.Add(individualStringMethodDefinition);
+				_methodByString.Add(instruction.String, individualStringMethodDefinition);
+
+				stringIndex++;
+			}
+
+			var newinstruction = Instruction.Create(OpCodes.Call, individualStringMethodDefinition);
+			instruction.ReplaceStringWithInstruction(newinstruction);
 		}
 
 		public void HideDoubles(IEnumerable<NumberInstruction<double>> doubleInstructions)
@@ -846,7 +842,7 @@ namespace Obfuscator.Structure
 			foreach (var instruction in intInstructions)
 			{
 				var initializeConst = Instruction.Create(OpCodes.Ldc_I4, ReverseInt(instruction.Number));
-				var callMethodInstruction = Instruction.Create(OpCodes.Call, baseGetInt);
+				var callMethodInstruction = Instruction.Create(OpCodes.Call, BaseGetInt);
 				instruction.ReplaceNumberWithInstruction(initializeConst, callMethodInstruction);
 			}
 		}
