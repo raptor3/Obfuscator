@@ -6,6 +6,7 @@ using System.Xml.Serialization;
 using Obfuscator.Structure;
 using System.IO;
 using Obfuscator.Iterator;
+using System.Windows.Forms;
 
 namespace Obfuscator
 {
@@ -16,61 +17,65 @@ namespace Obfuscator
 			Console.WriteLine("Usage: obfuscar [projectfile] [outputDirectory]");
 		}
 
-		private static int Main(string[] args)
+		[STAThread]
+		static void Main()
+		{
+			Application.EnableVisualStyles();
+			Application.SetCompatibleTextRenderingDefault(false);
+			Application.Run(new StartForm());
+		}
+
+		private static int m1(string[] args)
 		{
 			Console.WriteLine();
+			var form = new StartForm();
+			
 
-			if (args.Length != 2)
-			{
-				ShowHelp();
-				return 1;
-			}
+			//if (args.Length != 2)
+			//{
+			//	ShowHelp();
+			//	return 1;
+			//}
 
-			int start = Environment.TickCount;
+			//try
+			//{
+			//	Console.Write("Loading project...");
 
-			try
-			{
-				Console.Write("Loading project...");
+			//	XmlSchemaSet schemas = new XmlSchemaSet();
+			//	schemas.Add("", "PropertiesSchema.xsd");
 
-				XmlSchemaSet schemas = new XmlSchemaSet();
-				schemas.Add("", "PropertiesSchema.xsd");
+			//	XmlReaderSettings settings = new XmlReaderSettings()
+			//	{
+			//		ValidationType = ValidationType.Schema,
+			//		Schemas = schemas
+			//	};
+			//	settings.ValidationEventHandler += new ValidationEventHandler(ValidationCallBack);
 
-				XmlReaderSettings settings = new XmlReaderSettings()
-				{
-					ValidationType = ValidationType.Schema,
-					Schemas = schemas
-				};
-				settings.ValidationEventHandler += new ValidationEventHandler(ValidationCallBack);
+			//	XmlReader reader = XmlReader.Create(args[0], settings);
 
-				XmlReader reader = XmlReader.Create(args[0], settings);
+			//	XmlSerializer serializer = new XmlSerializer(typeof(Project));
 
-				XmlSerializer serializer = new XmlSerializer(typeof(Project));
+			//	var project = (Project)serializer.Deserialize(reader);
+			//	project.NameIteratorFabric = new AlphabetIteratorFabric();
+			//	project.Load(new DefaultAssemblyResolver());
+			//	project.Resolve();
+			//	project.HideStrings();
+			//	Console.WriteLine();
+			//	var result = project.RunRules();
+			//	Console.WriteLine(result);
+			//	project.AddSecurity();
 
-				var project = (Project)serializer.Deserialize(reader);
-				project.NameIteratorFabric = new AlphabetIteratorFabric();
-				project.Load(new DefaultAssemblyResolver());
-				project.Resolve();
-				project.HideStrings();
-				Console.WriteLine();
-				var result = project.RunRules();
-				Console.WriteLine(result);
-				project.AddSecurity();
-
-				Directory.CreateDirectory(args[1]);
-				project.SaveAssemblies(args[1]);
-				File.WriteAllText(args[1] + @"\result.txt", result);
-				Console.WriteLine("Completed, {0:f2} secs.", (Environment.TickCount - start) / 1000.0);
-			}
-			finally
-			{
-				Console.WriteLine();
-			}
+				
+			//	project.SaveAssemblies();
+			//	File.WriteAllText(project.OutputFolder + @"\result.txt", result);
+			//}
+			//finally
+			//{
+			//	Console.WriteLine();
+			//}
 			return 0;
 		}
 
-		private static void ValidationCallBack(object sender, ValidationEventArgs e)
-		{
-			throw new Exception(string.Format("Validation Error: {0}", e.Message));
-		}
+
 	}
 }

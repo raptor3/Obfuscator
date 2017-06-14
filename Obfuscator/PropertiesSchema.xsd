@@ -2,6 +2,7 @@
   <xs:element name="Obfuscator">
     <xs:complexType>
       <xs:sequence>
+		<xs:element name="OutputFolder"/>
         <xs:element name="Module" maxOccurs="unbounded" minOccurs="0">
           <xs:complexType>
             <xs:choice maxOccurs="unbounded" minOccurs="0">

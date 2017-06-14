@@ -4,6 +4,7 @@ using Obfuscator.Iterator;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
@@ -25,6 +26,8 @@ namespace Obfuscator.Structure
 		public List<Assembly> Assemblies { get; set; }
 		[XmlIgnore]
 		public List<Assembly> AssembliesReferences { get; set; }
+		[XmlElement("OutputFolder")]
+		public string OutputFolder { get; set; }
 
 		public void Load(DefaultAssemblyResolver resolver)
 		{
@@ -176,15 +179,12 @@ namespace Obfuscator.Structure
 			return result.ToString();
 		}
 
-		public void SaveAssemblies(string output)
+		public void SaveAssemblies()
 		{
+			Directory.CreateDirectory(OutputFolder);
 			foreach (var assembly in Assemblies)
 			{
-				assembly.Save(output);
-			}
-			foreach (var assembly in Assemblies)
-			{
-				assembly.DoubleSave(output);
+				assembly.Save(OutputFolder);
 			}
 		}
 

@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Obfuscator>
+  <OutputFolder>out</OutputFolder>
   <Module file="TestProject.exe">
     <SkipNamespace name="TestProjec" skipTypes="false"/>
   </Module>
