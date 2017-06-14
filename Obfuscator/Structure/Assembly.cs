@@ -16,6 +16,8 @@ namespace Obfuscator.Structure
 		private Project project;
 		private AssemblyDefinition assembly;
 		private Dictionary<string, Namespace> namespaces = new Dictionary<string, Namespace>();
+		private DefaultAssemblyResolver resolver;
+
 		[XmlIgnore]
 		public HiderClass Hider { get; private set; }
 		[XmlIgnore]
@@ -46,6 +48,7 @@ namespace Obfuscator.Structure
 
 		public void LoadAssemblies(DefaultAssemblyResolver resolver, Project prj)
 		{
+			this.resolver = resolver;
 			project = prj;
 			resolver.AddSearchDirectory(Path.GetDirectoryName(File));
 
@@ -142,21 +145,158 @@ namespace Obfuscator.Structure
 			return assembly.FullName == fieldRef.Resolve()?.Module.Assembly.FullName;
 		}
 
+		int GetTargetOffset(Mono.Cecil.Cil.MethodBody body, Instruction instruction)
+		{
+			if (instruction == null)
+			{
+				var last = body.Instructions[body.Instructions.Count - 1];
+				return last.Offset + last.GetSize();
+			}
+
+			return instruction.Offset;
+		}
+
 		public void Save(string output)
 		{
 			Hider?.FinalizeHiderClass();
 			assembly?.Write(Path.Combine(output, Path.GetFileName(File)));
+
+			var a = AssemblyDefinition.ReadAssembly
+			(
+				Path.Combine(output, Path.GetFileName(File)),
+				new ReaderParameters
+				{
+					ReadingMode = ReadingMode.Immediate,
+					ReadSymbols = false,
+					AssemblyResolver = resolver
+				}
+			);
+
+			var bytes = new List<byte>();
+			var body = a.EntryPoint.Body;
+			var sizes = body.Instructions.Select(i => i.GetSize()).ToList();
+			var offsets = new List<int>();
+			var size = 0;
+			foreach (var siz in sizes)
+			{
+				offsets.Add(size);
+				size += siz;
+			}
+			
+			foreach (var instruction in body.Instructions)
+			{
+				var opcode = instruction.OpCode;
+				var operand_type = opcode.OperandType;
+
+				if (opcode.Size == 1)
+				{
+					bytes.Add(opcode.Op1);
+				}
+				bytes.Add(opcode.Op2);
+				if (operand_type == OperandType.InlineNone)
+					continue;
+
+				var operand = instruction.Operand;
+				if (operand == null && !(operand_type == OperandType.InlineBrTarget || operand_type == OperandType.ShortInlineBrTarget))
+				{
+					throw new ArgumentException();
+				}
+
+				switch (operand_type)
+				{
+					case OperandType.InlineSwitch:
+						{
+							var targets = (Instruction[])operand;
+							bytes.AddRange(BitConverter.GetBytes(targets.Length));
+							var diff = instruction.Offset + opcode.Size + (4 * (targets.Length + 1));
+							for (int i = 0; i < targets.Length; i++)
+								bytes.AddRange(BitConverter.GetBytes((GetTargetOffset(body, targets[i]) - diff)));
+							break;
+						}
+					case OperandType.ShortInlineBrTarget:
+						{
+							var target = (Instruction)operand;
+							var offset = target != null ? GetTargetOffset(body, target) : body.CodeSize;
+							bytes.Add((byte)(offset - (instruction.Offset + opcode.Size + 1)));
+							break;
+						}
+					case OperandType.InlineBrTarget:
+						{
+							var target = (Instruction)operand;
+							var offset = target != null ? GetTargetOffset(body, target) : body.CodeSize;
+							bytes.AddRange(BitConverter.GetBytes(offset - (instruction.Offset + opcode.Size + 4)));
+							break;
+						}
+					case OperandType.ShortInlineVar:
+						bytes.Add((byte)GetVariableIndex((VariableDefinition)operand));
+						break;
+					case OperandType.ShortInlineArg:
+						bytes.Add((byte)GetParameterIndex((ParameterDefinition)operand));
+						break;
+					case OperandType.InlineVar:
+						bytes.AddRange(BitConverter.GetBytes((short)GetVariableIndex((VariableDefinition)operand)));
+						break;
+					case OperandType.InlineArg:
+						bytes.AddRange(BitConverter.GetBytes((short)GetParameterIndex((ParameterDefinition)operand)));
+						break;
+					case OperandType.InlineSig:
+						WriteMetadataToken(GetStandAloneSignature((CallSite)operand));
+						break;
+					case OperandType.ShortInlineI:
+						if (opcode == OpCodes.Ldc_I4_S)
+							bytes.Add((byte)operand);
+						else
+							bytes.Add((byte)operand);
+						break;
+					case OperandType.InlineI:
+						bytes.AddRange(BitConverter.GetBytes((int)operand));
+						break;
+					case OperandType.InlineI8:
+						bytes.AddRange(BitConverter.GetBytes((long)operand));
+						break;
+					case OperandType.ShortInlineR:
+						bytes.AddRange(BitConverter.GetBytes((float)operand));
+						break;
+					case OperandType.InlineR:
+						bytes.AddRange(BitConverter.GetBytes((double)operand));
+						break;
+					case OperandType.InlineString:
+						WriteMetadataToken(
+							new MetadataToken(
+								TokenType.String,
+								GetUserStringIndex((string)operand)));
+						break;
+					case OperandType.InlineType:
+					case OperandType.InlineField:
+					case OperandType.InlineMethod:
+					case OperandType.InlineTok:
+						WriteMetadataToken(metadata.LookupToken((IMetadataTokenProvider)operand));
+						break;
+					default:
+						throw new ArgumentException();
+				}
+			}
+
+
+			EntryHashCode = EntryPoint.AddEntryPointSecurity();
 		}
 
-		public void DoubleSave(string output)
+		static int GetVariableIndex(VariableDefinition variable)
 		{
-			var s = System.Reflection.Assembly.Load(Path.GetFullPath(Path.Combine(output, Path.GetFileName(File)))).EntryPoint.GetMethodBody().GetILAsByteArray();
-			var hash = System.Text.Encoding.UTF8.GetString(s, 0, s.Length).GetHashCode();
-			foreach (var entryHash in EntryHash)
+			return variable.Index;
+		}
+
+		int GetParameterIndex(ParameterDefinition parameter)
+		{
+			if (body.method.HasThis)
 			{
-				entryHash.Operand = hash;
+				if (parameter == body.this_parameter)
+					return 0;
+
+				return parameter.Index + 1;
 			}
-			assembly?.Write(Path.Combine(output, Path.GetFileName(File)));
+
+			return parameter.Index;
 		}
 
 		public bool HasProperty(PropertyReference propRef)
@@ -280,11 +420,11 @@ namespace Obfuscator.Structure
 
 		public void AddSecurity()
 		{
-			EntryHashCode = EntryPoint.AddEntryPointSecurity();
-			foreach (var nms in namespaces.Values)
-			{
-				nms.AddSecurity();
-			}
+			//EntryHashCode = EntryPoint.AddEntryPointSecurity();
+			//foreach (var nms in namespaces.Values)
+			//{
+			//	nms.AddSecurity();
+			//}
 		}
 
 		public void AddType(TypeDefinition typeDefinition)
